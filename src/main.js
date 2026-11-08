@@ -11,6 +11,9 @@ import { QualityGovernor } from './game/perf.js';
 import { Renderer } from './game/render.js';
 import { Input } from './game/input.js';
 import { Rng } from './core/rng.js';
+import './ui/duelui.js';
+import { DuelGame, duelConfig } from './game3d/duelgame.js';
+import { OUTFITS } from './game3d/themes.js';
 
 const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 const params = new URLSearchParams(location.search);
@@ -21,7 +24,9 @@ const save = new SaveStore((() => { try { return localStorage; } catch { return 
 const S = save.state;
 const canvas = document.getElementById('c');
 const audio = new GameAudio(), rend = new Renderer(canvas);
-let ui, input;
+let ui, input, duel, active = 'duel';   // active: 'duel' (3D, menu + duel matches) or 'arena' (top-down team mode)
+const canvas3 = document.getElementById('c3');
+function setActive(a) { active = a; canvas.hidden = a !== 'arena'; canvas3.hidden = a !== 'duel'; }
 
 const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 const palette = () => paletteOf(S.settings.palette);
@@ -72,7 +77,7 @@ function stepAttract(dt) {
 
 // ---------------- match flow ----------------
 function startMatch(cfg) {
-  audio.unlock(); attract = null;
+  audio.unlock(); attract = null; setActive('arena'); rend.resize();
   M = { cfg, scores: [0, 0], round: 0, attempt: 0, lost: 0, out: false, elims: 0, shots: 0, hits: 0, startT: performance.now() };
   const landscape = landscapeNow();
   M.arena = makeArena({ seed: cfg.seed, level: cfg.level, landscape, teamSizes: cfg.sizes });
@@ -175,6 +180,10 @@ function finishMatch() {
 let last = performance.now(), gov = new QualityGovernor();
 function frame(ts) {
   const dt = Math.min(0.05, Math.max(0.001, (ts - last) / 1000)); last = ts;
+  if (active === 'duel') {
+    if (duel.active) { try { duel.frame(dt); } catch (e) { console.warn('duel frame', e); } if (duel.mode === 'playing' && S.settings.quality !== 'low' && !params.has('q') && gov.push(dt) === 'downgrade') { S.settings.quality = 'low'; apply(); save.save(); ui.toast('Switched to Low graphics for smoother play', 2400); } }
+    requestAnimationFrame(frame); return;
+  }
   if (mode === 'playing' && S.settings.quality !== 'low' && !params.has('q')) {
     if (gov.push(dt) === 'downgrade') { S.settings.quality = 'low'; apply(); rend.resize(); save.save(); ui.toast('Switched to Low graphics for smoother play', 2400); }
   }
@@ -224,21 +233,32 @@ const actions = {
   buy: d => {
     const p = PALETTES.find(x => x.id === d.id); if (!p || S.palettes.includes(p.id)) return;
     if (S.coins < p.cost) { audio.error(); ui.toast(`Need ${p.cost - S.coins} more coins — win matches to earn them`); return; }
-    S.coins -= p.cost; S.palettes.push(p.id); S.settings.palette = p.id; save.save(); audio.coin(); applyPalette(); renderShop(); ui.toast(`${p.name} unlocked!`);
+    S.coins -= p.cost; S.palettes.push(p.id); S.settings.palette = p.id; save.save(); audio.coin(); applyPalette(); duel.refreshLook(); ui.toast(`${p.name} unlocked!`);
   },
-  equip: d => { if (S.palettes.includes(d.id)) { S.settings.palette = d.id; save.save(); applyPalette(); renderShop(); } },
+  equip: d => { if (S.palettes.includes(d.id)) { S.settings.palette = d.id; save.save(); applyPalette(); duel.refreshLook(); } },
   settings: () => renderSettings(),
   closeSettings: () => ui.hideSettings(),
   setSetting: (k, v) => {
-    if (k === 'assist') v = Number(v);
-    S.settings[k] = v; apply(); if (k === 'quality' || k === 'reduceMotion') rend.resize(); save.save();
+    if (k === 'assist') v = Number(v); if (k === 'sens') v = Number(v);
+    S.settings[k] = v; apply(); duel.applySettings(); if (k === 'quality' || k === 'reduceMotion') { rend.resize(); duel.stage?.resize(); } save.save();
   },
   resetProgress: async () => { if (await ui.confirm({ title: 'Reset all progress?', body: 'This erases campaign, coins and colours on this device.', ok: 'Reset', cancel: 'Cancel', danger: true })) { save.reset(); location.reload(); } },
-  pause: () => { if (mode === 'playing' || mode === 'countdown' || mode === 'roundend') { M.prevMode = mode; mode = 'paused'; input.reset(); input.enabled = false; ui.showPause(); } },
-  resume: () => { if (mode === 'paused') { ui.hidePause(); mode = M.prevMode; if (mode === 'playing') input.enabled = true; last = performance.now(); } },
-  restart: () => { ui.hidePause(); startMatch(M.cfg); },
+  pause: () => { if (active === 'duel') return duel.pause(); if (mode === 'playing' || mode === 'countdown' || mode === 'roundend') { M.prevMode = mode; mode = 'paused'; input.reset(); input.enabled = false; ui.showPause(); } },
+  resume: () => { if (active === 'duel') return duel.resume(); if (mode === 'paused') { ui.hidePause(); mode = M.prevMode; if (mode === 'playing') input.enabled = true; last = performance.now(); } },
+  restart: () => { if (active === 'duel') return duel.restart(); ui.hidePause(); startMatch(M.cfg); },
   quit: () => { ui.hidePause(); toMenu(); },
-  retry: () => startMatch(M.cfg),
+  tab: d => duel.setTab(d.tab), areaPrev: () => duel.setArea(-1), areaNext: () => duel.setArea(1),
+  playDuel: () => { if (duel.noGL) { ui.toast('3D needs WebGL on this device — try Arena mode'); return; } audio.unlock(); const a = duel.areaInfo()[duel.areaIdx]; if (a.locked) return; setActive('duel'); duel.startMatch(duelConfig(a.stage)); },
+  dnext: () => duel.nextStage(), dretry: () => duel.retry(),
+  dshare: async () => { const blob = await duel.snapshot(); if (!blob) { ui.toast('Could not capture image'); return; } await shareBlob(blob, 'painball-duel.png', 'My Painball duel', 'Splatted the bot in Painball!'); },
+  swapL: () => duel.input.requestSwap(-1), swapR: () => duel.input.requestSwap(1),
+  wear: d => { if (S.outfits.includes(d.id)) { S.settings.outfit = d.id; save.save(); duel.refreshLook(); } },
+  buyOutfit: d => {
+    const o = OUTFITS.find(x => x.id === d.id); if (!o || S.outfits.includes(o.id)) return;
+    if (S.coins < o.cost) { audio.error(); ui.toast(`Need ${o.cost - S.coins} more coins — win duels to earn them`); return; }
+    S.coins -= o.cost; S.outfits.push(o.id); S.settings.outfit = o.id; save.save(); audio.coin(); duel.refreshLook(); ui.toast(`${o.name} unlocked!`);
+  },
+  retry: () => { if (active === 'arena') startMatch(M.cfg); else duel.retry(); },
   next: () => { const c = M.cfg; if (c.kind === 'journey') startMatch(levelConfig(c.n + 1)); else toMenu(); },
   menu: () => toMenu(),
   ff: () => { ffOn = !ffOn; ui.toast(ffOn ? 'Fast-forward ×3' : 'Normal speed', 900); },
@@ -252,6 +272,11 @@ const renderShop = () => ui.showShop({ coins: S.coins, owned: S.palettes, equipp
 const renderSettings = () => ui.showSettings({ settings: S.settings, version: VERSION, persistent: save.persistent, canVibrate: typeof navigator.vibrate === 'function' });
 function applyPalette() { const p = palette(); ui.setPalette(p); rend.setPalette(p); }
 
+async function shareBlob(blob, name, title, text) {
+  const file = new File([blob], name, { type: 'image/png' }); S.stats.shares++; save.save();
+  try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title, text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); ui.toast('Image saved');
+}
 async function shareArt() {
   if (!resultArt) return;
   const blob = await new Promise(r => resultArt.toBlob(r, 'image/png'));
@@ -266,9 +291,8 @@ async function shareArt() {
 }
 
 function toMenu() {
-  ui.hideAll(); mode = 'menu'; M = null; input.reset(); input.enabled = false; save.save();
-  startAttract();
-  ui.showMenu({ level: S.level, coins: S.coins, daily: { done: S.daily.last === dateKey(), streak: S.daily.streak }, canInstall: !!deferredInstall, stats: S.stats });
+  ui.hideAll(); mode = 'menu'; M = null; W = null; attract = null; input.reset(); input.enabled = false; save.save(); setActive('duel');
+  try { duel.enterMenu(); } catch (e) { console.warn('3D unavailable', e); duel.noGL = true; duel.tab = 'arena'; duel.renderMenu(); }
 }
 
 // ---------------- boot ----------------
@@ -279,16 +303,17 @@ input = new Input(document.getElementById('c'), {
   onStick: (w, st) => { ui.updateStick(w === 'move' ? 'move' : 'aim', st); if (st) ui.setTouch(true); },
 });
 if (coarse) ui.setTouch(true);
+duel = new DuelGame({ canvas: canvas3, ui, S, save, audio, params });
 apply(); applyPalette();
-const doResize = () => { rend.resize(); if (M && mode !== 'menu') fitPadding(true); };
+const doResize = () => { rend.resize(); duel.stage?.resize(); if (M && mode !== 'menu' && active === 'arena') fitPadding(true); };
 addEventListener('resize', doResize); addEventListener('orientationchange', () => setTimeout(doResize, 150));
-rend.resize();
+if (!canvas.hidden) rend.resize();
 document.addEventListener('visibilitychange', () => { if (document.hidden) actions.pause(); });
 addEventListener('pagehide', () => save.save());
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; if (mode === 'menu') toMenu(); });
 toMenu(); requestAnimationFrame(frame);
 if (debug) window.__game = {
-  get mode() { return mode; }, get M() { return M; }, get W() { return W; }, S, save, actions, ui, rend, input, alive, YOU,
+  duel, get active() { return active; }, get mode() { return active === 'duel' ? duel.mode : mode; }, get M() { return M; }, get W() { return W; }, S, save, actions, ui, rend, input, alive, YOU,
   killEnemies() { for (const e of W.ents) if (e.team === 1 && e.alive) { e.alive = false; e.deadAt = W.t; } },
   killYou() { const y = YOU(); y.alive = false; y.deadAt = W.t; },
 };

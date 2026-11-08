@@ -131,7 +131,7 @@ export class UI {
           <button class="btn ghost" data-act="settings">${ICON.sliders}<span>Settings</span></button>
           <button class="btn ghost" data-act="quit">${ICON.home}<span>Quit to menu</span></button>
         </div>
-        <p class="muted fine">Move: WASD / left thumb · Aim: mouse / right thumb · Dash: Shift / double-tap · Reload: R</p>
+        <p class="muted fine">Duel: hold to aim · drag · release to fire · A/D or ◀ ▶ swap cover. Arena: WASD/left thumb move, mouse/right thumb aim, Shift/double-tap dash.</p>
       </div></div>`);
     this._focus(el);
   }
@@ -169,6 +169,7 @@ export class UI {
         ${tog('sound', 'Sound', 'Synth effects, no downloads', settings.sound)}
         ${canVibrate ? tog('haptics', 'Haptics', 'Vibrate on hits (Android)', settings.haptics) : ''}
         <div class="row-set col"><span>Aim assist<small>Gently pulls your aim toward enemies you can see</small></span>${seg('assist', [[0, 'Off'], [1, 'Low'], [2, 'Med'], [3, 'High']], settings.assist)}</div>
+        <label class="row-set col"><span>Aim sensitivity<small>How far the crosshair moves per drag</small></span><input type="range" min="0.5" max="1.8" step="0.1" value="${settings.sens}" data-set="sens" aria-label="Aim sensitivity"></label>
         <div class="row-set col"><span>Graphics<small>Low saves battery on older phones</small></span>${seg('quality', [['high', 'High'], ['low', 'Low']], settings.quality)}</div>
         ${tog('lefty', 'Left-handed', 'Swap move and aim sides', settings.lefty)}
         ${tog('reduceMotion', 'Reduce motion', 'No screen shake or confetti', settings.reduceMotion)}

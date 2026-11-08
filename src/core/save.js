@@ -12,8 +12,10 @@ export function defaultSave() {
     stars: {},
     daily: { last: null, streak: 0, bestStreak: 0, done: [] },
     palettes: ['classic'],
-    settings: { sound: true, haptics: true, assist: 2, quality: 'high', palette: 'classic', lefty: false, reduceMotion: false },
-    flags: { tutorialSeen: false },
+    outfits: ['rookie'],
+    duel: { stage: 1, best: 0, trophies: 0, wins: 0, losses: 0, tricks: { head: 0, hand: 0, barrel: 0, quick: 0 } },
+    settings: { sound: true, haptics: true, assist: 2, quality: 'high', palette: 'classic', lefty: false, reduceMotion: false, outfit: 'rookie', sens: 1 },
+    flags: { tutorialSeen: false, duelTutorial: false },
     stats: { matches: 0, wins: 0, rounds: 0, roundsWon: 0, elims: 0, shots: 0, hits: 0, shares: 0, dashes: 0, playSec: 0 },
   };
 }
@@ -46,7 +48,7 @@ export function migrate(raw) {
 /** Clamp/repair every field so the rest of the game can trust the shape. */
 export function sanitize(d) {
   const def = defaultSave();
-  const s = d.settings || {}, f = d.flags || {}, st = d.stats || {}, dl = d.daily || {};
+  const s = d.settings || {}, f = d.flags || {}, st = d.stats || {}, dl = d.daily || {}, du = d.duel || {}, dt = {};
   const stars = {};
   for (const [k, v] of Object.entries(d.stars && typeof d.stars === 'object' ? d.stars : {})) {
     if (/^\d+$/.test(k) && v >= 1 && v <= 3) stars[k] = Math.floor(v);
@@ -65,6 +67,8 @@ export function sanitize(d) {
       done: Array.isArray(dl.done) ? dl.done.filter(isKey).slice(-60) : [],
     },
     palettes,
+    outfits: Array.from(new Set(['rookie', ...(Array.isArray(d.outfits) ? d.outfits.filter(o => ['ranger', 'ninja', 'bolt', 'blaze', 'royal'].includes(o)) : [])])),
+    duel: { stage: int(du.stage, 1, 1_000_000, 1), best: int(du.best, 0, 1_000_000, 0), trophies: int(du.trophies, 0, 10_000_000, 0), wins: int(du.wins, 0, 1e9, 0), losses: int(du.losses, 0, 1e9, 0), tricks: Object.fromEntries(['head', 'hand', 'barrel', 'quick'].map(k => [k, int(dt.tricks?.[k] ?? (du.tricks || {})[k], 0, 1e9, 0)])) },
     settings: {
       sound: bool(s.sound, true),
       haptics: bool(s.haptics, true),
@@ -73,8 +77,10 @@ export function sanitize(d) {
       palette: palettes.includes(s.palette) ? s.palette : 'classic',
       lefty: bool(s.lefty, false),
       reduceMotion: bool(s.reduceMotion, false),
+      outfit: ['rookie', 'ranger', 'ninja', 'bolt', 'blaze', 'royal'].includes(s.outfit) ? s.outfit : 'rookie',
+      sens: num(s.sens, 0.5, 1.8, 1),
     },
-    flags: { tutorialSeen: bool(f.tutorialSeen, false) },
+    flags: { tutorialSeen: bool(f.tutorialSeen, false), duelTutorial: bool(f.duelTutorial, false) },
     stats: Object.fromEntries(Object.keys(def.stats).map(k => [k, int(st[k], 0, 1e12, 0)])),
   };
 }

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Painball \u2014 Splat the bots. Own the arena.",
+  "description": "Painball — Splat the bots. Own the arena.",
   "scripts": {
     "test": "node --test \"tests/unit/*.test.js\"",
     "build": "node scripts/build.mjs",
@@ -15,7 +15,9 @@
     "publish:pages": "node scripts/publish.mjs",
     "calibrate": "node scripts/sim/calibrate.mjs"
   },
-  "dependencies": {},
+  "dependencies": {
+    "three": "^0.170.0"
+  },
   "devDependencies": {
     "axe-core": "^4.11.0",
     "esbuild": "^0.25.0"
