@@ -12,6 +12,7 @@ const SAVE_KEY = 'painball.save';
 
 const results = [];
 async function test(name, fn) {
+  if (process.env.E2E_ONLY && !name.includes(process.env.E2E_ONLY)) return;   // e.g. E2E_ONLY=layout npm run e2e
   const t0 = Date.now();
   try { await fn(); results.push({ name, ok: true }); console.log(`  ok   ${name} (${Date.now() - t0} ms)`); }
   catch (e) { results.push({ name, ok: false }); console.log(`  FAIL ${name}\n       ${String(e.message).split('\n').slice(0, 4).join('\n       ')}`); }

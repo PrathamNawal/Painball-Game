@@ -172,3 +172,8 @@ input[type=range] { width: 100%; accent-color: #6ea8ff; height: 32px; }
 .btn.small { width: auto; }
 @keyframes bpop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @media (max-height: 640px) { .alive { top: calc(50px + var(--safe-t)); } .coach { bottom: calc(100px + var(--safe-b)); } .bigscore { font-size: 40px; } .art-cv { max-height: 18vh; } }
+
+/* narrow phones: two-up button grids must never overflow their card (found by CI at 320 px with wider runner fonts) */
+.grid2 > .btn { min-width: 0; padding: 0 8px; gap: 6px; font-size: 14px; overflow: hidden; }
+.grid2 .btn span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid2 .btn svg { width: 20px; height: 20px; }
