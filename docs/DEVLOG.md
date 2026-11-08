@@ -22,3 +22,13 @@
 - Pages is "Deploy from branch: main". Removed the Actions Pages workflow (it can't work with a branch source). `npm run publish:pages` copies the build to `/` and `/docs` (+ `.nojekyll`); CI `--check` fails on a stale publish.
 - E2E findings fixed on the way to 18/18: (1) drawn round replayed with the *same seed* → deterministic stalemate forever (autopilot hung) → seed salted with attempt counter; (2) menu `.stack` grid overflowed at 320 px (content-sized track, playbook pitfall 1.3) → `minmax(0,1fr)`; (3) flaky input tests because bots shot the player during slow software-GL frames → enemies made static dummies in input tests.
 - Result: unit 36/36, e2e 18/18, axe 0 violations on 7 screens, 28 KB gz JS.
+
+## 2026-11-08 — v2: Duel mode (3D)
+- Owner supplied Shoot & Hide-style references and asked for a 10x visual reimagining. Decision (ADR-011..015): add a 3D cover-duel hero mode, keep Arena.
+- Wrote DUEL_DESIGN first. Core (`src/core/duel.js`) is pure: exposure-based hit zones (head/hand/torso), deflating bunkers, barrels, gravity-compensated launch, AI with laser telegraph, scripted human model.
+- 3D layer: toon + inverted-hull outlines, sky shader, themed props, decal pool (paint persists on cover), particles, one custom post pass, camera director (hidden / scope / kill-cam / showcase).
+- **Bug (shaders):** `#include <colorspace_fragment>` must start its own line — inline use produced a black screen and `Fragment shader is not compiled`. Found by a console-error assertion in the screenshot script.
+- **Bug (anim vs transform):** `dbpop` keyframes dropped the banner's `translateX(-50%)` (clipped "ENEMY IS SHOOTING"). Fixed with a banner-specific keyframe.
+- **Design finding from tests:** reloading after every shot made the 3-pod magazine meaningless and the tempo sluggish. Changed: forced reload only when empty — which also creates the "ENEMY IS RELOADING" window.
+- Calibration (30 matches/cell): stages 1–8 forgiving, mid-game tightens, stage 30 ≈ 50 % for a good scripted player. AI fairness test: 396 sampled enemy bursts, shortest laser→ball 0.27 s.
+- Perf: single pre-composited layers (arena) and one blit; 3D: no real shadows (blob shadows), pixel ratio ≤ 1.75 (1 on Low), post pass skipped on Low, adaptive governor.

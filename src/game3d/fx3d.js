@@ -18,14 +18,14 @@ export function splatTextures(color) {
     x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.ellipse(cx - 7, cy - 9, 7, 4, -0.6, 0, TAU); x.fill();
     x.fillStyle = color; const drops = 7 + rng.int(6);
     for (let i = 0; i < drops; i++) { const a = rng.next() * TAU, d = base * (1.2 + rng.next() * 1.9), r = 1.5 + rng.next() * 3.4; x.beginPath(); x.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, r, 0, TAU); x.fill(); }
-    const t = new CanvasTexture(c); t.anisotropy = 2; out.push(t);
+    const t = new CanvasTexture(c); t.anisotropy = 2; t.userData.shared = true; out.push(t);
   }
   texCache.set(color, out); return out;
 }
 
 const planeGeo = new PlaneGeometry(1, 1);
 const matCache = new Map();
-const decalMat = (color, v) => { const k = color + v; if (!matCache.has(k)) matCache.set(k, new MeshBasicMaterial({ map: splatTextures(color)[v], transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); return matCache.get(k); };
+const decalMat = (color, v) => { const k = color + v; if (!matCache.has(k)) { const m = new MeshBasicMaterial({ map: splatTextures(color)[v], transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }); m.userData.shared = true; matCache.set(k, m); } return matCache.get(k); };
 
 /** Pool of paint decals: orient to a surface normal, parent to any Object3D (e.g. a bunker so it squashes with it). */
 export class Decals {

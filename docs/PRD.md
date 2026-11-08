@@ -58,3 +58,34 @@ Match completion ≥ 70 % of starts · first-session ≥ 3 matches · D1 return 
 | Bots feel cheaty or dumb | Skill = reaction/aim error parameters; calibration sims vs scripted human models; AI never reads the player's aim |
 | Perf on low-end phones | Pre-rendered static layers, pooled particles, adaptive quality governor |
 | Unverified on real devices | Stated honestly in TEST_PLAN; owner playtest is the one next step |
+
+
+---
+# v2 — "Duel": 3D cover-shooter as the hero mode (added 2026-11-08)
+**Owner brief:** "Reimagine paintball with a 10x better visual experience" using Shoot & Hide-style references (toon 3D, sunset palettes, peek/aim/hide duels, trick-shot callouts, chunky camo menu). Single player vs computer, mobile + desktop web, **no ads**.
+
+## One-liner (v2)
+Crouch behind an inflatable bunker, pop up, line up the shot through a zoomed scope, splat the rival before they splat you — then watch it in slow-mo with MASK SHOT / HANDSHOT / BARREL SHOT callouts.
+
+## What changed for the player
+| Pillar | v1 (top-down Arena) | v2 Duel |
+|---|---|---|
+| Camera | fixed top-down | over-the-shoulder 3D, zoom-scope aim, kill-cam |
+| Visuals | flat canvas | toon-shaded low-poly, outlines, 5 themed areas (sunset desert, candy beach, frost park, neon blacklight night, jungle ruins), persistent paint decals on cover, inflatable bunkers that **deflate**, RGB-split on big moments |
+| Tension | team brawl | readable 1v1: **laser-sight telegraph**, 3-pod magazine, reload windows, swap cover |
+| Reward moments | splat | trick shots (MASK / HAND / BARREL / QUICK DRAW / UNTOUCHABLE) with coins, trophies |
+| Menu | list of buttons | live 3D diorama, area carousel, chunky START, Gear + Skins tabs |
+Arena stays as a second mode (tab).
+
+## v2 requirements
+| ID | Requirement | Pri |
+|----|-------------|-----|
+| V1 | 3D duel loop: hold-aim-release, bunker cover, enemy AI with telegraph, best-of-3 | P0 |
+| V2 | Trick-shot callouts + coin/trophy rewards | P0 |
+| V3 | 5 themed areas, campaign stages with bosses | P0 |
+| V4 | One-thumb touch + mouse controls, swap cover, aim assist, sensitivity | P0 |
+| V5 | Toon + outline + post-FX with a Low quality path; adaptive downgrade | P0 |
+| V6 | Gear (paint colours) + Skins (outfits) as cosmetic coin sinks | P1 |
+| V7 | Share-a-snapshot of the winning moment | P1 |
+| V8 | Duel AI fairness proven by test; calibration table | P0 |
+| X1 | Still no ads / trackers / network calls | P0 |

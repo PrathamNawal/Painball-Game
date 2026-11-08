@@ -10,7 +10,7 @@ import { Decals, Particles } from './fx3d.js';
 import { Post } from './post3d.js';
 
 const TAU = Math.PI * 2;
-const dispose = o => o.traverse(c => { if (c.geometry && !c.geometry.userData.shared) c.geometry.dispose?.(); const m = c.material; if (m) (Array.isArray(m) ? m : [m]).forEach(x => { if (!x.userData?.shared) x.dispose?.(); }); });
+const dispose = o => o.traverse(c => { if (c.geometry && !c.geometry.userData.shared) c.geometry.dispose?.(); const m = c.material; if (m) (Array.isArray(m) ? m : [m]).forEach(x => { if (x.userData?.shared) return; if (x.map && !x.map.userData?.shared) x.map.dispose?.(); x.dispose?.(); }); });   // incl. per-match canvas textures; shared (cached) ones are kept
 const canvasTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; return t; };
 
 export class Stage3D {
@@ -22,7 +22,7 @@ export class Stage3D {
     this.post = new Post(this.renderer);
     this.env = new Group(); this.dyn = new Group(); this.scene.add(this.env, this.dyn);
     this.decals = new Decals(this.scene, 220); this.drops = new Particles(this.scene, 420); this.dust = new Particles(this.scene, 160, { soft: 1 }); this.spark = new Particles(this.scene, 160, { additive: true });
-    this.time = 0; this.shake = 0; this.cam = { mode: 'showcase', t: 0, orbit: 0, kill: null }; this.pal = { you: '#2f8bff', foe: '#ff8a1f' };
+    this.reduce = false; this.time = 0; this.shake = 0; this.cam = { mode: 'showcase', t: 0, orbit: 0, kill: null }; this.pal = { you: '#2f8bff', foe: '#ff8a1f' };
     this.camPos = new Vector3(0, 3, 14); this.camLook = new Vector3(0, 1, 0); this.fovNow = 62; this.recoil = [0, 0]; this.ab = 0; this.flash = 0; this.balls = []; this.fighters = []; this.theme = null;
   }
   setQuality(low) { this.low = !!low; this.post.enabled = !low; this.resize(); }
@@ -147,7 +147,7 @@ export class Stage3D {
       default: break;
     }
   }
-  confetti(n = 60) { if (this.low && n > 40) n = 40; const cols = [this.pal.you, this.pal.foe, '#ffd23f', '#ffffff', '#5dffb0']; for (let i = 0; i < n; i++) this.spark.add((Math.random() - 0.5) * 12, 6 + Math.random() * 3, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 3, -1 - Math.random() * 2, (Math.random() - 0.5) * 3, cols[i % 5], 0.35, 2.6, 2); }
+  confetti(n = 60) { if (this.reduce) return; if (this.low && n > 40) n = 40; const cols = [this.pal.you, this.pal.foe, '#ffd23f', '#ffffff', '#5dffb0']; for (let i = 0; i < n; i++) this.spark.add((Math.random() - 0.5) * 12, 6 + Math.random() * 3, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 3, -1 - Math.random() * 2, (Math.random() - 0.5) * 3, cols[i % 5], 0.35, 2.6, 2); }
 
   // ------------------------------------------------------------ per-frame
   update(dt, st, view = {}) {
@@ -211,7 +211,7 @@ export class Stage3D {
       tp = new Vector3(Math.sin(a) * r * 0.6, (this.portrait ? 6.2 : 4.6) + Math.sin(c.t * 0.3) * 0.3, Math.cos(a) * r); tl = new Vector3(0, this.portrait ? -2.6 : 0.6, 0); fov = this.portrait ? 58 : 46;
       this.camPos.lerp(tp, 1 - Math.exp(-dt * 3)); this.camLook.lerp(tl, 1 - Math.exp(-dt * 3)); this.fovNow += (fov - this.fovNow) * 0.1;
     }
-    const sh = this.shake * this.shake * 0.12;
+    const sh = this.reduce ? 0 : this.shake * this.shake * 0.12;
     cam.position.set(this.camPos.x + (Math.random() - 0.5) * sh, this.camPos.y + (Math.random() - 0.5) * sh, this.camPos.z); cam.fov = this.fovNow; cam.updateProjectionMatrix(); cam.lookAt(this.camLook);
   }
   render() { this.post.render(this.scene, this.camera); }

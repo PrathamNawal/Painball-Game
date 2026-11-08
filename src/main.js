@@ -299,7 +299,7 @@ function toMenu() {
 ui = new UI(document.getElementById('ui'), actions);
 input = new Input(document.getElementById('c'), {
   toWorld: (x, y) => rend.toWorld(x, y), getWorld: () => W,
-  onPause: () => (mode === 'paused' ? actions.resume() : actions.pause()),
+  onPause: () => { if (active === 'arena') (mode === 'paused' ? actions.resume() : actions.pause()); },   // duel has its own key handler: never double-toggle
   onStick: (w, st) => { ui.updateStick(w === 'move' ? 'move' : 'aim', st); if (st) ui.setTouch(true); },
 });
 if (coarse) ui.setTouch(true);

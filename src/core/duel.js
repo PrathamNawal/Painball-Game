@@ -11,7 +11,7 @@ export const D = {
 const zOf = side => (side === 0 ? D.POST_Z : -D.POST_Z), dirZ = side => (side === 0 ? -1 : 1);
 const hypot = Math.hypot;
 export const postsFor = stage => (stage <= 2 ? [0] : stage <= 6 ? [-4, 4] : [-6, 0, 6]);
-export const duelSkill = n => Math.min(0.95, Math.max(0, 0.02 + 0.76 * (1 - Math.exp(-Math.max(1, n) / 18))));
+export const duelSkill = n => Math.min(0.95, Math.max(0, 0.02 + 0.8 * (1 - Math.exp(-Math.max(1, n) / 28))));
 
 export function createDuel(cfg) {
   const rng = new Rng(`duel:${cfg.seed}`), xs = cfg.posts || postsFor(cfg.stage || 1);
@@ -112,7 +112,7 @@ function fireBall(s, f, P, spread = 0) {
   s.balls.push({ id: s.ballId++, side: f.side, x: M.x, y: M.y, z: M.z, vx: dx / T, vy: dy / T + 0.5 * D.G * T, vz: dz / T, born: s.t, quick: s.t - f.riseAt <= D.QUICK });
   f.ammo--; f.shots++; f.cdT = D.FIRE_CD;
   s.events.push({ type: 'shot', side: f.side, x: M.x, y: M.y, z: M.z });
-  if (f.ammo === 0) f.reloadT = D.RELOAD;
+  if (f.ammo === 0) { f.reloadT = D.RELOAD; s.events.push({ type: 'reload', side: f.side }); }   // magazine empty: forced reload (the opening for the other side)
 }
 export const canFire = f => f.alive && f.cdT <= 0 && f.ammo > 0 && f.reloadT <= 0 && f.disarmT <= 0 && f.e >= D.MIN_FIRE_E && f.swapT <= 0;
 
@@ -156,7 +156,6 @@ function stepBalls(s, dt) {
 function stepFighter(s, f, dt, input) {
   f.cdT = Math.max(0, f.cdT - dt); f.disarmT = Math.max(0, f.disarmT - dt);
   if (f.reloadT > 0) { f.reloadT -= dt; if (f.reloadT <= 0) { f.reloadT = 0; f.ammo = D.MAG; s.events.push({ type: 'reloaded', side: f.side }); } }
-  else if (f.ammo < D.MAG && f.e < 0.1 && !f.want) { f.reloadT = D.RELOAD; s.events.push({ type: 'reload', side: f.side }); }
   if (f.swapT > 0) {                                           // dashing between posts: exposed while crossing
     f.swapT -= dt; const k = 1 - Math.max(0, f.swapT) / D.SWAP, sx = f.side === 0 ? 1 : -1;
     f.x = (f.swapFrom + (f.swapTo - f.swapFrom) * k) * sx; f.e += (0.55 - f.e) * Math.min(1, dt * 14); f.want = false; return;
@@ -174,12 +173,18 @@ function stepFighter(s, f, dt, input) {
 
 /** @param {{hold:boolean, release?:boolean, fire?:boolean, swap?:number, yaw?:number, pitch?:number}} pin player input */
 export function stepDuel(s, dt, pin = {}) {
-  s.t += dt;
+  s.t += dt; pin = { ...pin };
   const live = !s.over;
   const p = s.f[0], e = s.f[1];
   const px = p.x;
   // player fire first: a release while exposed fires then drops; `fire` fires while staying up (uses the exposure the player saw)
-  if (live && p.alive && (pin.release || pin.fire) && canFire(p)) { const ap = playerAimPoint(s, p), t = Math.max(0, 0.4 - p.hold); fireBall(s, p, ap, D.SPREAD * (1 + (2 * t) / 0.4)); }
+  const shootNow = () => { const ap = playerAimPoint(s, p), t = Math.max(0, 0.4 - p.hold); fireBall(s, p, ap, D.SPREAD * (1 + (2 * t) / 0.4)); };
+  if (live && p.alive) {
+    if ((pin.release || pin.fire) && canFire(p)) shootNow();
+    else if ((pin.release || pin.fire) && p.cdT > 0 && p.ammo > 0 && p.reloadT <= 0 && p.disarmT <= 0 && p.swapT <= 0) p.queue = { rel: !!pin.release, t: 0.4 };   // input buffer: a release during the fire cooldown must not be lost
+    else if (p.queue) { p.queue.t -= dt; if (canFire(p)) { shootNow(); p.queue = null; } else if (p.queue.t <= 0) p.queue = null; }
+    if (p.queue && p.queue.rel && !pin.hold) pin = { ...pin, hold: true };                   // stay risen until the queued shot leaves
+  }
   stepFighter(s, p, dt, live && p.alive ? pin : {}); p.vx = (p.x - px) / dt;
   if (e.ai) { const ex = e.x; stepFighter(s, e, dt, live && e.alive ? aiStep(s, e, dt) : {}); e.vx = (e.x - ex) / dt; }
   for (const b of s.bunkers) b.wob = Math.max(0, b.wob - dt * 3);
@@ -194,7 +199,7 @@ export const duelDone = s => !!s.over && s.overT >= D.END_DELAY;
 // ---------- enemy AI ----------
 const gauss = r => (r.next() + r.next() + r.next() - 1.5) * 2;
 export function aiParams(sk) {
-  return { hideMin: 1.0 - 0.6 * sk, hideMax: 2.2 - 1.2 * sk, tele: Math.max(0.25, 0.75 - 0.45 * sk), sigma: (3.6 - 2.6 * sk) * Math.PI / 180, react: 0.35 - 0.2 * sk, lead: 0.3 + 0.6 * sk, burstMax: sk < 0.25 ? 1 : sk < 0.6 ? 2 : 3 };
+  return { hideMin: 1.0 - 0.6 * sk, hideMax: 2.2 - 1.2 * sk, tele: Math.max(0.25, 0.95 - 0.7 * sk), sigma: (3.6 - 3.1 * sk) * Math.PI / 180, react: 0.35 - 0.2 * sk, lead: 0.3 + 0.6 * sk, burstMax: sk < 0.25 ? 1 : sk < 0.6 ? 2 : 3 };
 }
 const pressure = s => 1 - 0.65 * Math.min(1, Math.max(0, (s.t - 10) / 18));   // stalemate breaker: the AI gets bolder as the round drags on
 function aiStep(s, f, dt) {
@@ -214,7 +219,6 @@ function aiStep(s, f, dt) {
   switch (a.phase) {
     case 'hide':
       if (f.disarmT > 0) { a.phaseT = 0; break; }
-      if (f.ammo < D.MAG && f.reloadT <= 0 && f.e < 0.1) break;
       if (a.phaseT >= a.hideT && f.ammo > 0 && f.reloadT <= 0) {
         if (s.xs.length > 1 && rng.next() < 0.35) { const to = f.post + (rng.next() < 0.5 ? -1 : 1); if (to >= 0 && to < s.xs.length) { out.swap = (f.side === 0 ? 1 : -1) * 0 + (to - f.post); a.phaseT = a.hideT - 0.2; break; } }
         a.phase = 'tele'; a.phaseT = 0; a.burst = 1 + rng.int(P.burstMax); a.reactT = P.react;
@@ -265,7 +269,7 @@ export function scriptedInput(s, br, dt) {
   if (tgt) br.seen += dt; else br.seen = 0;
   switch (br.phase) {
     case 'wait':
-      if (p.ammo < D.MAG || p.reloadT > 0) break;
+      if (p.reloadT > 0 || p.ammo === 0) break;
       if (br.seen > br.react) { br.phase = 'rise'; br.t = 0; }
       break;
     case 'rise':

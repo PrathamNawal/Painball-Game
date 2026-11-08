@@ -12,7 +12,7 @@ export const duelConfig = stage => ({ stage, seed: `stage${stage}`, skill: duelS
 export class DuelGame {
   constructor({ canvas, ui, S, save, audio, params, onMenu }) {
     this.cv = canvas; this.ui = ui; this.S = S; this.save = save; this.audio = audio; this.params = params; this.onMenu = onMenu;
-    this.stage = null; this.mode = 'menu'; this.M = null; this.s = null; this.acc = 0; this.slowT = 0; this.tab = 'battle'; this.areaIdx = 0; this.t = 0; this.countT = 0; this.endT = 0; this.trickSeen = 0; this.hintT = 0;
+    this.stage = null; this.mode = 'menu'; this.M = null; this.s = null; this.acc = 0; this.slowT = 0; this.tab = 'battle'; this.areaIdx = areaOfStage(S.duel.stage); this.t = 0; this.countT = 0; this.endT = 0; this.trickSeen = 0; this.hintT = 0;
     this.SPEED = params.has('debug') ? Math.min(12, Math.max(1, Number(params.get('speed')) || 1)) : 1; this.AUTO = params.has('auto'); this.coach = 0;
     this.input = new DuelInput(canvas, { onPause: () => this.togglePause() });
     this.input.getState = () => this.s;
@@ -24,7 +24,7 @@ export class DuelGame {
     if (!this.stage) { try { this.stage = new Stage3D(this.cv); } catch (e) { this.stage = null; throw e; } }
     this.applySettings(); this.stage.resize(); return this.stage;
   }
-  applySettings() { const S = this.S; this.input.assist = S.settings.assist; this.input.sens = S.settings.sens; if (this.stage) this.stage.setQuality((this.params.get('q') || S.settings.quality) === 'low'); }
+  applySettings() { const S = this.S; this.input.assist = S.settings.assist; this.input.sens = S.settings.sens; if (this.stage) { this.stage.setQuality((this.params.get('q') || S.settings.quality) === 'low'); this.stage.reduce = S.settings.reduceMotion || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches); } }
 
   // ------------------------------------------------------------ menu + showcase
   areaInfo() {
@@ -173,5 +173,7 @@ export class DuelGame {
     if (this.mode === 'roundend') { this.endT += dt; if (duelDone(s) && this.endT > (this.params.has('fast') ? 0.4 : 2.2)) { this.ui.hideBanner(); this.ui.hideCallouts(); const M = this.M; if (M.scores[0] >= M.cfg.winRounds || M.scores[1] >= M.cfg.winRounds) this.finishMatch(); else this.startRound(); return; } }
     st.update(dt * (scale < 1 ? 0.5 : 1), s, { scope: true }); this.pushHud(); st.render();
   }
+  /** Test hook: eliminate a fighter exactly as a real hit would (events, tricks, round end). */
+  debugKill(side, zone = 'head') { const s = this.s, v = s?.f[side]; if (!v || !v.alive || s.over) return false; v.alive = false; v.deadAt = s.t; s.hitsTaken[side]++; s.events.push({ type: 'elim', victim: side, by: 1 - side, zone, quick: false }); if (side === 1) s.tricks.push({ zone, quick: false }); return true; }
   snapshot() { return new Promise(res => { this.stage.render(); this.cv.toBlob(res, 'image/png'); }); }
 }

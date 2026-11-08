@@ -4,11 +4,11 @@ import { eHeight, D } from '../core/duel.js';
 
 let gradient = null;
 export function toonGradient() {
-  if (!gradient) { gradient = new DataTexture(new Uint8Array([70, 70, 90, 255, 150, 150, 170, 255, 255, 255, 255, 255]), 3, 1, RGBAFormat); gradient.minFilter = gradient.magFilter = NearestFilter; gradient.needsUpdate = true; }
+  if (!gradient) { gradient = new DataTexture(new Uint8Array([70, 70, 90, 255, 150, 150, 170, 255, 255, 255, 255, 255]), 3, 1, RGBAFormat); gradient.minFilter = gradient.magFilter = NearestFilter; gradient.userData.shared = true; gradient.needsUpdate = true; }
   return gradient;
 }
 export const toon = (color, extra = {}) => new MeshToonMaterial({ color: new Color(color), gradientMap: toonGradient(), ...extra });
-const outlineMat = new MeshBasicMaterial({ color: 0x120c24, side: BackSide });
+const outlineMat = new MeshBasicMaterial({ color: 0x120c24, side: BackSide }); outlineMat.userData.shared = true;
 /** Adds an inverted-hull outline as a child (geometry must be centred). */
 export function outlined(mesh, k = 1.08) { const o = new Mesh(mesh.geometry, outlineMat); o.scale.setScalar(k); o.userData.outline = true; mesh.add(o); return mesh; }
 const mesh = (geo, mat, k = 1.08) => outlined(new Mesh(geo, mat), k);

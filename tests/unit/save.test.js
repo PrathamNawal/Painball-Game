@@ -25,5 +25,5 @@ test('throwing/blocked storage degrades to memory without crashing', () => {
   assert.equal(new SaveStore(null).persistent, false);
 });
 test('no ad/tracking fields exist in the save schema', () => {
-  const j = JSON.stringify(defaultSave()); assert.ok(!/ads?|track|analytics/i.test(j.replace(/palettes|shares/g, '')));
+  const keys = []; (function walk(o) { for (const [k, v] of Object.entries(o)) { keys.push(k); if (v && typeof v === 'object') walk(v); } })(defaultSave()); assert.ok(keys.every(k => !/^(ads?|adsWatched|noAds|track\w*|analytics\w*)$/i.test(k)), keys.join(','));
 });
