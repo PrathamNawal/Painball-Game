@@ -221,6 +221,8 @@ function subpathServer(port) {   // serves dist/ under /games/x/ to prove relati
     const { ctx, page } = await open({ ctxOpts: { bypassCSP: true }, seed: baseSave({ coins: 150, level: 7, stars: { 1: 3, 2: 2, 3: 1 } }) });   // bypassCSP: ONLY to inject axe
     const audit = async name => {
       await page.addScriptTag({ content: AXE }); await page.waitForTimeout(450);
+      // contrast is computed on blended colours: wait until every finite CSS animation (modal fade/pop) has settled
+      await page.evaluate(() => Promise.all(document.getAnimations().filter(a => a.effect.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))));
       const v = await page.evaluate(async () => (await axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'best-practice'] })).violations.map(x => x.id + ' x' + x.nodes.length + ' ' + x.nodes[0].html.slice(0, 90)));
       assert(v.length === 0, `${name}: ${v.join(' ; ')}`);
     };
