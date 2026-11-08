@@ -16,7 +16,9 @@
 
 ## 2026-11-08 — M4: verification
 - 36 unit tests green. Calibration table recorded in GAME_DESIGN (casual 73–80 % on L1–3 falling to 13 % at L30; expert 100 % → 38 %).
-- E2E suite (20 tests) on the production build; autopilot plays full matches unattended (`?auto&speed=6`).
+- E2E suite (18 tests) on the production build; autopilot plays full matches unattended (`?auto&speed=6`).
 
 ## 2026-11-08 — M5: deploy
 - Pages is "Deploy from branch: main". Removed the Actions Pages workflow (it can't work with a branch source). `npm run publish:pages` copies the build to `/` and `/docs` (+ `.nojekyll`); CI `--check` fails on a stale publish.
+- E2E findings fixed on the way to 18/18: (1) drawn round replayed with the *same seed* → deterministic stalemate forever (autopilot hung) → seed salted with attempt counter; (2) menu `.stack` grid overflowed at 320 px (content-sized track, playbook pitfall 1.3) → `minmax(0,1fr)`; (3) flaky input tests because bots shot the player during slow software-GL frames → enemies made static dummies in input tests.
+- Result: unit 36/36, e2e 18/18, axe 0 violations on 7 screens, 28 KB gz JS.

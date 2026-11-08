@@ -10,7 +10,7 @@ _Last run: see DEVLOG for the commit. Everything below was run in CI-like condit
 | Unit — match | campaign scaling, bosses, stars, rewards, daily streak incl. leap/DST/month boundaries, palettes | 6 |
 | Unit — save | roundtrip, corrupt→backup→defaults, clamping hostile values, v0 migration, newer-version refusal, throwing storage, **no ad/tracking fields** | 6 |
 | Unit — assist/perf | aim-assist cone/strength/LOS; quality governor | 3 |
-| E2E (production build) | boot + live attract match · **no third-party requests / no ad DOM** · desktop WASD/mouse/Shift/R through HUD · mobile touch sticks, auto-fire, double-tap dash, **real tap through HUD**, buttons · win flow + save · defeat flow · **unattended autopilot match** · pause (button/P/hidden tab) · settings persist · shop · levels · daily streak · share PNG · **320 px children-inside-bounds on every screen** · **axe on 7 screens** · reduced motion · **offline reload** · **sub-path `/games/x/`** | 20 |
+| E2E (production build) | boot + live attract match · **no third-party requests / no ad DOM** · desktop WASD/mouse/Shift/R through HUD · mobile touch sticks, auto-fire, double-tap dash, **real tap through HUD**, buttons · win flow + save · defeat flow · **unattended autopilot match** · pause (button/P/hidden tab) · settings persist · shop · levels · daily streak · share PNG · **320 px children-inside-bounds on every screen** · **axe on 7 screens (0 violations)** · reduced motion · **offline reload** · **sub-path `/games/x/`** | 18 |
 | Sim — calibration | `npm run calibrate` (see GAME_DESIGN) | script |
 
 ## Performance (measured, software GL — not a device)

@@ -73,7 +73,7 @@ function stepAttract(dt) {
 // ---------------- match flow ----------------
 function startMatch(cfg) {
   audio.unlock(); attract = null;
-  M = { cfg, scores: [0, 0], round: 0, lost: 0, out: false, elims: 0, shots: 0, hits: 0, startT: performance.now() };
+  M = { cfg, scores: [0, 0], round: 0, attempt: 0, lost: 0, out: false, elims: 0, shots: 0, hits: 0, startT: performance.now() };
   const landscape = landscapeNow();
   M.arena = makeArena({ seed: cfg.seed, level: cfg.level, landscape, teamSizes: cfg.sizes });
   ui.hideAll(); fitPadding(true); rend.setArena(M.arena, palette(), false);
@@ -84,8 +84,8 @@ function startMatch(cfg) {
 }
 
 function startRound() {
-  const cfg = M.cfg; M.round++;
-  W = createWorld({ arena: M.arena, sizes: cfg.sizes, human: true, skill: cfg.skill, roles: cfg.roles, seed: `${cfg.seed}:r${M.round}` });
+  const cfg = M.cfg; M.round++; M.attempt++;
+  W = createWorld({ arena: M.arena, sizes: cfg.sizes, human: true, skill: cfg.skill, roles: cfg.roles, seed: `${cfg.seed}:r${M.round}:a${M.attempt}` });   // attempt salts the seed: a drawn round replays differently, never as the same deterministic stalemate
   if (AUTO) { const you = YOU(); you.brain = makeBrain(0.97, 'rusher', W.rng); }
   ffOn = false; timeScale = 1; slowT = 0; acc = 0; endT = 0;
   ui.hideAll(); ui.showHud({ label: `${cfg.label} · R${M.round}`, winRounds: cfg.winRounds });
