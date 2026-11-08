@@ -16,5 +16,12 @@ export const ICON = {
   restart: s(`<path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" ${stroke}/>`),
   skip: s(`<path d="M5 5l9 7-9 7zM17 5v14" ${stroke}/>`),
   close: s(`<path d="M6 6l12 12M18 6L6 18" ${stroke}/>`),
+  bolt: s('<path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="currentColor"/>'),
+  reload: s(`<path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" ${stroke}/>`),
+  cart: s(`<circle cx="9" cy="20" r="1.6" fill="currentColor"/><circle cx="18" cy="20" r="1.6" fill="currentColor"/><path d="M3 4h2.5l2.2 11h11l2-8H6.5" ${stroke}/>`),
+  check: s(`<path d="M5 12.5l4.5 4.5L19 7.5" ${stroke}/>`),
+  lock: s(`<rect x="5" y="11" width="14" height="9" rx="2" ${stroke}/><path d="M8 11V8a4 4 0 0 1 8 0v3" ${stroke}/>`),
+  ff: s('<path d="M4 5l8 7-8 7zM12 5l8 7-8 7z" fill="currentColor"/>'),
+  skull: s(`<path d="M12 3a8 8 0 0 0-5 14v3h10v-3a8 8 0 0 0-5-14z" ${stroke}/><circle cx="9.3" cy="11.5" r="1.4" fill="currentColor"/><circle cx="14.7" cy="11.5" r="1.4" fill="currentColor"/>`),
   install: s(`<path d="M12 3v12M7 11l5 5 5-5M5 20h14" ${stroke}/>`),
 };

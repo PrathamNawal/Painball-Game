@@ -7,14 +7,14 @@ export const BACKUP_KEY = 'painball.save.bak';
 export function defaultSave() {
   return {
     version: SAVE_VERSION,
-    coins: 30,
+    coins: 20,
     level: 1,
     stars: {},
-    best: {},
     daily: { last: null, streak: 0, bestStreak: 0, done: [] },
-    settings: { sound: true, haptics: true, controls: 'auto', sensitivity: 1, quality: 'high', assist: false },
-    flags: { tutorialSeen: false, motionAsked: false, noAds: false },
-    stats: { plays: 0, clears: 0, falls: 0, playSec: 0, adsWatched: 0, hints: 0, skips: 0, dailyClears: 0 },
+    palettes: ['classic'],
+    settings: { sound: true, haptics: true, assist: 2, quality: 'high', palette: 'classic', lefty: false, reduceMotion: false },
+    flags: { tutorialSeen: false },
+    stats: { matches: 0, wins: 0, rounds: 0, roundsWon: 0, elims: 0, shots: 0, hits: 0, shares: 0, dashes: 0, playSec: 0 },
   };
 }
 
@@ -47,37 +47,34 @@ export function migrate(raw) {
 export function sanitize(d) {
   const def = defaultSave();
   const s = d.settings || {}, f = d.flags || {}, st = d.stats || {}, dl = d.daily || {};
-  const stars = {}, best = {};
+  const stars = {};
   for (const [k, v] of Object.entries(d.stars && typeof d.stars === 'object' ? d.stars : {})) {
     if (/^\d+$/.test(k) && v >= 1 && v <= 3) stars[k] = Math.floor(v);
   }
-  for (const [k, v] of Object.entries(d.best && typeof d.best === 'object' ? d.best : {})) {
-    if (/^\d+$/.test(k) && Number.isFinite(v) && v > 0 && v < 36000) best[k] = v;
-  }
+  const known = ['classic', 'neon', 'sunset', 'toxic', 'candy', 'gold'];
+  const palettes = Array.from(new Set(['classic', ...(Array.isArray(d.palettes) ? d.palettes.filter(p => known.includes(p)) : [])]));
   return {
     version: SAVE_VERSION,
     coins: int(d.coins, 0, 10_000_000, def.coins),
     level: int(d.level, 1, 1_000_000, def.level),
-    stars, best,
+    stars,
     daily: {
       last: isKey(dl.last) ? dl.last : null,
       streak: int(dl.streak, 0, 100_000, 0),
       bestStreak: int(dl.bestStreak, 0, 100_000, 0),
       done: Array.isArray(dl.done) ? dl.done.filter(isKey).slice(-60) : [],
     },
+    palettes,
     settings: {
-      sound: bool(s.sound, def.settings.sound),
-      haptics: bool(s.haptics, def.settings.haptics),
-      controls: oneOf(s.controls, ['auto', 'motion', 'touch'], 'auto'),
-      sensitivity: num(s.sensitivity, 0.6, 1.6, 1),
+      sound: bool(s.sound, true),
+      haptics: bool(s.haptics, true),
+      assist: int(s.assist, 0, 3, 2),
       quality: oneOf(s.quality, ['high', 'low'], 'high'),
-      assist: bool(s.assist, false),
+      palette: palettes.includes(s.palette) ? s.palette : 'classic',
+      lefty: bool(s.lefty, false),
+      reduceMotion: bool(s.reduceMotion, false),
     },
-    flags: {
-      tutorialSeen: bool(f.tutorialSeen, false),
-      motionAsked: bool(f.motionAsked, false),
-      noAds: bool(f.noAds, false),
-    },
+    flags: { tutorialSeen: bool(f.tutorialSeen, false) },
     stats: Object.fromEntries(Object.keys(def.stats).map(k => [k, int(st[k], 0, 1e12, 0)])),
   };
 }

@@ -21,7 +21,7 @@ const result = await esbuild.build({
   entryNames: '[name]-[hash]',
   bundle: true, minify: !dev, sourcemap: dev, format: 'esm', target: ['es2020', 'safari15', 'chrome90'],
   metafile: true, legalComments: 'none', logLevel: 'warning',
-  define: { __APP_VERSION__: JSON.stringify(pkg.version), __DEV__: JSON.stringify(dev), __ADS_MODE__: JSON.stringify(process.env.GAME_ADS === 'off' ? 'off' : 'demo') },
+  define: { __APP_VERSION__: JSON.stringify(pkg.version), __DEV__: JSON.stringify(dev) },
 });
 
 const outs = Object.keys(result.metafile.outputs).map(f => path.relative(dist, path.join(root, f)).replace(/\\/g, '/'));
