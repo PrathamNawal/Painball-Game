@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Painball — Splat the bots. Own the arena.",
+  "description": "Painball \u2014 Splat the bots. Own the arena.",
   "scripts": {
     "test": "node --test \"tests/unit/*.test.js\"",
     "build": "node scripts/build.mjs",
@@ -11,7 +11,9 @@
     "serve": "node scripts/serve.mjs",
     "e2e": "node tests/e2e/run.cjs",
     "icons": "node scripts/make-icons.cjs",
-    "check": "npm test && npm run build"
+    "check": "npm test && npm run build",
+    "publish:pages": "node scripts/publish.mjs",
+    "calibrate": "node scripts/sim/calibrate.mjs"
   },
   "dependencies": {},
   "devDependencies": {

@@ -26,7 +26,7 @@ export class Input {
   _down(e) {
     if (!this.enabled) return;
     if (e.pointerType === 'mouse') { if (e.button === 0) { this.mouse.down = true; this.mouse.x = e.clientX; this.mouse.y = e.clientY; this.mouse.has = true; } return; }
-    this.touchSeen = true; this.el.setPointerCapture?.(e.pointerId);
+    this.touchSeen = true; try { this.el.setPointerCapture?.(e.pointerId); } catch { /* capture is a nicety, never fatal */ }
     if (this._side(e.clientX)) {
       if (this.aimS.id != null) return;
       Object.assign(this.aimS, { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: 0, y: 0, down: performance.now(), moved: false }); this.onStick?.('aim', { ox: e.clientX, oy: e.clientY, x: 0, y: 0 });

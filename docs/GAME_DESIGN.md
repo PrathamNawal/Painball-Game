@@ -38,3 +38,21 @@ Coins: +3 per round win, +1 per elimination, +10 match win, +25 first 3-star. Pa
 
 ## Controls
 Mobile: left half = floating move stick; right half = floating aim stick (fires while held past deadzone; soft aim-assist snaps ≤ 14° toward nearest visible enemy); DASH and RELOAD buttons bottom-right. Desktop: WASD/arrows, mouse aim, LMB/Space fire, Shift dash, R reload, P/Esc pause.
+
+## Calibration (measured, `npm run calibrate`)
+Headless best-of-3 campaign matches (N = 40 per cell). "Human model" = ONE bot in the human's slot at skill h + allies at the campaign ally skill, vs the level's enemies. Skill models: casual 0.25 · decent 0.45 · good 0.65 · expert 0.85.
+
+| Level | Teams | Foe skill | casual | decent | good | expert |
+|---|---|---|---|---|---|---|
+| 1 | 1v1 | 0.15 | 73% | 88% | 98% | 100% |
+| 3 | 1v1 | 0.20 | 80% | 88% | 93% | 88% |
+| 5 | 2v2 | 0.33 | 43% | 57% | 75% | 80% |
+| 8 | 2v2 | 0.32 | 23% | 55% | 38% | 60% |
+| 10 | 3v3 | 0.44 | 65% | 70% | 88% | 93% |
+| 15 | 3v3 | 0.53 | 50% | 48% | 78% | 70% |
+| 20 | 4v4 | 0.59 | 28% | 28% | 48% | 55% |
+| 30 | 4v4 | 0.69 | 13% | 23% | 28% | 38% |
+
+Reading: early levels are winnable by a casual player, the curve rises smoothly, late levels need skill. Per-level variance (e.g. L8) is arena + personality luck — intentional variety. **These are bots, not people**: humans use cover better and aim worse than the model, aim-assist helps them, and nothing here measures touch-control feel. Re-tune `enemySkill()` from real play data. Rule of thumb until then: a level whose measured human win-rate is < 25 % or > 90 % gets its skill nudged ±0.05.
+
+AI validation (unit tests, 50–80 mirrored matches each): equal skill is fair (team 0 wins 30–70 % of decided matches), 0.9 beats 0.3 in ≥ 70 % of decided matches in both seat orders, rounds average 8–45 s, ≤ 20 % timeouts. A "stalemate breaker" makes anchors/snipers push after 18 s so rounds end.

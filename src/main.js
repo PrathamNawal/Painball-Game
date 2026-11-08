@@ -15,6 +15,7 @@ import { Rng } from './core/rng.js';
 const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 const params = new URLSearchParams(location.search);
 const debug = params.has('debug'), AUTO = params.has('auto');
+const SPEED = debug ? Math.min(12, Math.max(1, Number(params.get('speed')) || 1)) : 1;   // test hook: sim speed multiplier (debug builds of the URL only)
 
 const save = new SaveStore((() => { try { return localStorage; } catch { return null; } })());
 const S = save.state;
@@ -180,14 +181,14 @@ function frame(ts) {
   if (mode === 'menu' && W) stepAttract(dt);
   else if (W && (mode === 'playing' || mode === 'roundend')) {
     let scale = timeScale; if (slowT > 0) { slowT -= dt; scale = 0.28; } if (ffOn && !YOU().alive) scale = 3.2;
-    acc += dt * scale; let n = 0;
-    while (acc >= CFG.DT && n++ < 8) {
+    acc += dt * scale * SPEED; let n = 0; const cap = 8 * Math.ceil(SPEED);
+    while (acc >= CFG.DT && n++ < cap) {
       const inp = mode === 'playing' ? (AUTO ? thinkAI(W, YOU(), CFG.DT) : input.sample(CFG.DT)) : undefined;
       step(W, CFG.DT, inp);
       for (const ev of W.events) onEvent(ev);
       rend.consume(W, W.events); W.events.length = 0;
     }
-    if (n >= 8) acc = 0;
+    if (n >= cap) acc = 0;
     if (mode === 'roundend') { endT += dt; if (roundDone(W) && endT > (params.has('fast') ? 0.3 : 1.7)) { ui.hideBanner(); if (M.scores[0] >= M.cfg.winRounds || M.scores[1] >= M.cfg.winRounds) finishMatch(); else startRound(); } }
     else coach(dt);
     pushHud();

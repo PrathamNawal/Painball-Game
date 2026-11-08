@@ -27,7 +27,7 @@ export function createWorld(o) {
         id: ents.length, team, slot: i, human, x: sp.x, y: sp.y, vx: 0, vy: 0, r: CFG.R, aim: Math.atan2(tgt.y - sp.y, tgt.x - sp.x),
         ammo: CFG.MAG, reloadT: 0, cdT: 0, dashT: 0, dashCd: 0, dashDx: 0, dashDy: 0, alive: true, shield: false, rapidT: 0, splashN: 0,
         kills: 0, shots: 0, hits: 0, role, hurtT: 0, moving: 0,
-        brain: human ? null : makeBrain(skills[team], role, rng),
+        brain: human ? null : makeBrain(team === 0 && i === 0 && o.humanSkill != null ? o.humanSkill : skills[team], role, rng),   // humanSkill: calibration sims drive slot 0 with a skill model
       });
     }
   }

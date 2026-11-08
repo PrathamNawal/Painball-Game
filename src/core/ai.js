@@ -82,7 +82,7 @@ function walkable(nav, ax, ay, bx, by) {
 
 // ---------- decisions ----------
 function pickSpot(w, e, br, enemyPos, wantPeekOf) {
-  const A = w.arena, me = e, spots = A.spots, role = br.role;
+  const A = w.arena, me = e, spots = A.spots, pressure = clamp((w.t - 18) / 25, 0, 1), role = pressure > 0.5 && (br.role === 'anchor' || br.role === 'sniper') ? 'rusher' : br.role;   // stalemate breaker: late in a round everyone pushes
   const home = A.spawns[e.team][0], forward = { x: enemyPos.x, y: enemyPos.y };
   const dMe = dist(me, enemyPos);
   let best = null, bs = -1e9;
@@ -179,7 +179,7 @@ export function thinkAI(w, e, dt) {
       else if (br.role === 'rusher' || !br.spot || w.rng.chance(0.35) || !memFresh) {
         const sp = pickSpot(w, e, br, enemyPos, null); br.spot = sp || br.spot;
         if (sp) setGoal(w, e, br, sp.x, sp.y);
-        br.phaseT = p.hide * (0.6 + w.rng.next() * 0.8);
+        br.phaseT = p.hide * (0.6 + w.rng.next() * 0.8) * (1 - 0.7 * clamp((w.t - 18) / 25, 0, 1));
       } else if (br.spot) { // anchor-style: peek from current cover
         const pk = pickSpot(w, e, br, enemyPos, br.spot);
         if (pk && dist(pk, br.spot) < 90) { setGoal(w, e, br, pk.x, pk.y); br.phase = 'peek'; br.phaseT = 0.9 + w.rng.next() * 1.0; }

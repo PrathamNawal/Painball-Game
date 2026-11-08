@@ -6,7 +6,7 @@ const NOUN = ['Alley', 'Yard', 'Warehouse', 'Canyon', 'Garden', 'Depot', 'Arcade
 export function arenaName(seed) { let h = 0; for (const c of String(seed)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `${ADJ[h % ADJ.length]} ${NOUN[(h >>> 5) % NOUN.length]}`; }
 
 export const clamp01 = v => Math.min(1, Math.max(0, v));
-export const enemySkill = n => clamp01(0.15 + 0.8 * (1 - Math.exp(-n / 14)));
+export const enemySkill = n => clamp01(0.12 + 0.66 * (1 - Math.exp(-n / 22)));
 export const allySkill = n => clamp01(0.45 + 0.25 * (1 - Math.exp(-n / 10)));
 export const sizeFor = n => (n <= 3 ? 1 : n <= 9 ? 2 : n <= 19 ? 3 : 4);
 export const levelLabel = s => (s < 0.3 ? 'Rookie' : s < 0.5 ? 'Regular' : s < 0.7 ? 'Veteran' : s < 0.85 ? 'Elite' : 'Legend');
