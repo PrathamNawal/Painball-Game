@@ -270,3 +270,6 @@ input[type=range] { width: 100%; accent-color: #6ea8ff; height: 32px; }
 /* narrow phones: chunky button rows must never overflow their card; BOSS tag on level tiles keeps its own colours */
 .grid2 > .btn3 { min-width: 0; padding: 0 8px; font-size: 14px; } .grid2 .btn3 span { gap: 6px; min-width: 0; } .grid2 .btn3 svg { width: 20px; height: 20px; flex: none; }
 .lv small.boss { background: transparent; padding: 0; color: #ffd45a; } .lv.cur small.boss { color: #06122e; }
+/* trick rows on the result card: shrink instead of overflowing on narrow screens / wide fallback fonts */
+.tricks { width: 100%; min-width: 0; } .co.static { width: 100%; max-width: 100%; min-width: 0; justify-content: center; } .co.static b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; } .co.static em { flex: none; } .co.static .dia { flex: none; }
+.facts dd { min-width: 0; } .dres .bigscore { min-width: 0; }
