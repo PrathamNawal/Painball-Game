@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>The Locked Study</title>
+<meta name="description" content="A 2-minute 3D investigation. Read the notes, count the clues, crack the code.">
+<meta name="theme-color" content="#0b0a10">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<canvas id="view" aria-label="3D house" role="img"></canvas>
+
+<div id="hud" hidden>
+  <div class="bar">
+    <div class="chip" id="timer" role="timer" aria-label="Time">0:00</div>
+    <div class="chip" id="room" aria-live="polite">Entrance hall</div>
+    <div class="chip" id="notes-count" aria-label="Notes found">Notes 0/4</div>
+    <button class="chip btn" id="btn-notes" type="button">Notebook</button>
+    <button class="chip btn warn" id="btn-hint" type="button">Hint +10s</button>
+  </div>
+  <div id="cross" aria-hidden="true"></div>
+  <div id="prompt" role="status" aria-live="polite" hidden></div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <div id="touch" hidden>
+    <div id="stick"><i></i></div>
+    <button id="btn-act" type="button">Inspect</button>
+  </div>
+</div>
+
+<section class="modal" id="m-intro">
+  <div class="card">
+    <p class="eyebrow">A 2-minute investigation</p>
+    <h1>The Locked Study</h1>
+    <p>The study is locked with a 4-digit code. Four notes are scattered through the house. Each one points at a clue in <em>another</em> room — read carefully, because every clue has a look-alike decoy.</p>
+    <p class="fine"><b>Move</b> WASD / arrows (Shift runs) · <b>Look</b> mouse (click the view to lock) · <b>Inspect</b> E or click · <b>Notebook</b> N · phone: left thumb moves, right thumb looks.</p>
+    <div class="row">
+      <button class="btn primary" id="go-daily" type="button">Today's case</button>
+      <button class="btn" id="go-random" type="button">Random case</button>
+    </div>
+    <p class="fine" id="best"></p>
+  </div>
+</section>
+
+<section class="modal" id="m-note" hidden>
+  <div class="card paper"><p class="eyebrow" id="note-title">Note</p><p class="note-text" id="note-text"></p><button class="btn primary" id="note-close" type="button">Got it</button></div>
+</section>
+
+<section class="modal" id="m-book" hidden>
+  <div class="card paper"><p class="eyebrow">Notebook</p><ol id="book-list"></ol><button class="btn primary" id="book-close" type="button">Close</button></div>
+</section>
+
+<section class="modal" id="m-pad" hidden>
+  <div class="card pad">
+    <p class="eyebrow">Study door</p>
+    <div id="pad-display" role="status" aria-live="polite" aria-label="Entered code">- - - -</div>
+    <div id="pad-keys"></div>
+    <p class="fine" id="pad-msg" aria-live="polite">Enter the 4-digit code.</p>
+    <button class="btn" id="pad-close" type="button">Step back</button>
+  </div>
+</section>
+
+<section class="modal" id="m-win" hidden>
+  <div class="card">
+    <p class="eyebrow">Case closed</p>
+    <h2>The study is open</h2>
+    <div class="stars" id="win-stars" role="img"></div>
+    <dl class="facts" id="win-facts"></dl>
+    <div class="row">
+      <button class="btn primary" id="win-again" type="button">New case</button>
+      <button class="btn" id="win-walk" type="button">Walk in</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

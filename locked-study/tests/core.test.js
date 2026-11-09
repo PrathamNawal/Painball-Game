@@ -1,0 +1,55 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { generateCase, solveFromNotes, readEvidence, checkCode, hint, starsFor, effectiveSeconds, makeRng, ROOM_IDS, KINDS, dailySeed } from '../src/core.js';
+
+test('same seed -> identical case; different seeds differ', () => {
+  assert.deepEqual(generateCase('abc'), generateCase('abc'));
+  assert.notDeepEqual(generateCase('abc').code, generateCase('abd').code);
+  const r = makeRng(7), a = r(), b = r(); assert.ok(a >= 0 && a < 1 && a !== b);
+});
+
+test('600 cases: solvable, unambiguous, decoys never match, every room used once', () => {
+  for (let s = 0; s < 600; s++) {
+    const c = generateCase(s);
+    assert.deepEqual(solveFromNotes(c), c.code, `seed ${s} not solvable from notes`);
+    assert.ok(c.code.every(d => d >= 1 && d <= 9));
+    assert.equal(new Set(c.objects.map(o => o.id)).size, 8, 'object ids unique (one per kind per room)');
+    assert.equal(new Set(c.digits.map(d => d.kind)).size, 4);
+    assert.equal(new Set(c.notes.map(n => n.room)).size, 4, 'one note per room');
+    for (const d of c.digits) {
+      assert.notEqual(d.noteRoom, d.evidenceRoom);
+      const decoy = c.objects.find(o => o.kind === d.kind && o.role === 'decoy');
+      assert.notEqual(decoy.room, d.evidenceRoom); assert.notEqual(decoy.value, d.value, 'decoy would give the same digit');
+      assert.ok(ROOM_IDS.includes(decoy.room) && KINDS.includes(decoy.kind));
+      const note = c.notes.find(n => n.pos === d.pos);
+      assert.ok(note.text.toLowerCase().includes(d.evidenceRoom === 'hall' ? 'entrance hall' : d.evidenceRoom), 'note names the evidence room');
+    }
+  }
+});
+
+test('code check', () => {
+  const c = generateCase(1);
+  assert.ok(checkCode(c, c.code)); assert.ok(checkCode(c, c.code.join('')));
+  assert.ok(!checkCode(c, [...c.code.slice(0, 3), (c.code[3] % 9) + 1]));
+  assert.ok(!checkCode(c, '12'));
+});
+
+test('hints guide: note -> evidence -> final', () => {
+  const c = generateCase(5);
+  assert.equal(hint(c, [], []).kind, 'note');
+  const first = c.digits[0];
+  assert.match(hint(c, [1], []).text, /Digit 1/);
+  assert.equal(hint(c, [1], []).kind, 'evidence');
+  assert.equal(hint(c, [1], [`${first.kind}@${first.evidenceRoom}`]).kind, 'note');
+  const all = c.digits.map(d => d.pos), ex = c.digits.map(d => `${d.kind}@${d.evidenceRoom}`);
+  assert.equal(hint(c, all, ex).kind, 'final');
+});
+
+test('scoring + daily seed', () => {
+  assert.equal(starsFor(effectiveSeconds(100, 1, 0)), 3);   // 110s
+  assert.equal(starsFor(effectiveSeconds(100, 2, 0)), 3);   // 120s is exactly par
+  assert.equal(starsFor(effectiveSeconds(101, 2, 0)), 2);   // 121s just over
+  assert.equal(starsFor(effectiveSeconds(120, 2, 0)), 2);
+  assert.equal(starsFor(effectiveSeconds(200, 0, 0)), 1);
+  assert.match(dailySeed(new Date(2026, 10, 9)), /^daily-2026-11-09$/);
+});
