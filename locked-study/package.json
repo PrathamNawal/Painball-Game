@@ -7,6 +7,6 @@
   "scripts": {
     "start": "node serve.mjs 8099",
     "test": "node --test \"tests/*.test.js\"",
-    "e2e": "node tests/e2e.cjs"
+    "e2e": "node tests/e2e.cjs && node tests/e2e-feel.cjs"
   }
 }

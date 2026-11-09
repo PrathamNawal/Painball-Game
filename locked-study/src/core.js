@@ -10,6 +10,14 @@ export const ROOM_IDS = ['hall', 'kitchen', 'library', 'bedroom'];
 export const ROOM_NAMES = { hall: 'entrance hall', kitchen: 'kitchen', library: 'library', bedroom: 'bedroom' };
 export const KIND_NOUN = { clock: 'grandfather clock', candles: 'candles', dots: 'portrait', hooks: 'coat hooks' };
 export const PAR_SECONDS = 120, HINT_COST = 10, WRONG_COST = 5;
+// Three levels that get harder. decoys = look-alike objects per clue kind; landmarks = notes name rooms by their rug colour instead of their name.
+export const LEVELS = [
+  { n: 1, name: 'Warm-up', decoys: 0, landmarks: false, par: 150, blurb: 'No decoys. Notes name the room.' },
+  { n: 2, name: 'The Case', decoys: 1, landmarks: false, par: 120, blurb: 'Every clue has a look-alike decoy.' },
+  { n: 3, name: 'Cold Case', decoys: 2, landmarks: true, par: 100, blurb: 'Two decoys each, and notes describe rooms by their rug.' },
+];
+export const levelOf = n => LEVELS[Math.max(0, Math.min(2, (n | 0) - 1))];
+export const ROOM_LANDMARK = { hall: 'room with the red rug', kitchen: 'room with the teal rug', library: 'room with the purple rug', bedroom: 'room with the brown rug' };
 
 export function hashSeed(str) {
   let h = 2166136261 >>> 0;
@@ -48,20 +56,23 @@ const PHRASES = {
 };
 
 /** Deterministically build a full case from a seed (number or string). */
-export function generateCase(seed) {
-  const r = makeRng(seed);
+export function generateCase(seed, level = 2) {
+  const L = levelOf(level), r = makeRng(`${seed}|L${L.n}`);
   const roomOrder = shuffle(ROOM_IDS, r), kinds = shuffle(KINDS, r);
   const code = Array.from({ length: 4 }, () => 1 + Math.floor(r() * 9));
   const digits = code.map((value, i) => ({ pos: i + 1, value, kind: kinds[i], noteRoom: roomOrder[i], evidenceRoom: roomOrder[(i + 1) % 4] }));
   const objects = [];
   for (const d of digits) {
     objects.push({ id: `${d.kind}@${d.evidenceRoom}`, kind: d.kind, room: d.evidenceRoom, value: d.value, role: 'evidence', pos: d.pos });
-    const decoyRoom = pick(ROOM_IDS.filter(x => x !== d.evidenceRoom), r);
-    let dv = 1 + Math.floor(r() * 9); if (dv === d.value) dv = (dv % 9) + 1;
-    objects.push({ id: `${d.kind}@${decoyRoom}`, kind: d.kind, room: decoyRoom, value: dv, role: 'decoy', pos: d.pos });
+    const decoyRooms = shuffle(ROOM_IDS.filter(x => x !== d.evidenceRoom), r).slice(0, L.decoys), used = new Set([d.value]);
+    for (const decoyRoom of decoyRooms) {
+      let dv = 1 + Math.floor(r() * 9); while (used.has(dv)) dv = (dv % 9) + 1; used.add(dv);   // decoys differ from the truth and from each other
+      objects.push({ id: `${d.kind}@${decoyRoom}`, kind: d.kind, room: decoyRoom, value: dv, role: 'decoy', pos: d.pos });
+    }
   }
-  const notes = digits.map(d => ({ pos: d.pos, room: d.noteRoom, text: pick(PHRASES[d.kind], r)(d.pos, ROOM_NAMES[d.evidenceRoom]) }));
-  return { seed, code, digits, objects, notes };
+  const where = room => (L.landmarks ? ROOM_LANDMARK[room] : ROOM_NAMES[room]);
+  const notes = digits.map(d => ({ pos: d.pos, room: d.noteRoom, text: pick(PHRASES[d.kind], r)(d.pos, where(d.evidenceRoom)) }));
+  return { seed, level: L.n, code, digits, objects, notes };
 }
 
 /** What a perfect observer reads from the object of `kind` standing in `room` (null if none). */
@@ -73,16 +84,18 @@ export function solveFromNotes(c) {
 export const checkCode = (c, input) => { const a = Array.isArray(input) ? input.join('') : String(input); return a === c.code.join(''); };
 
 /** Next hint given which notes (by pos) the player found and which evidence ids they examined. */
+export const roomPhrase = (c, room) => (levelOf(c.level).landmarks ? ROOM_LANDMARK[room] : ROOM_NAMES[room]);
 export function hint(c, found, examined) {
   const f = found instanceof Set ? found : new Set(found), ex = examined instanceof Set ? examined : new Set(examined);
-  for (const d of c.digits) if (f.has(d.pos) && !ex.has(`${d.kind}@${d.evidenceRoom}`)) return { text: `Digit ${d.pos}: study the ${KIND_NOUN[d.kind]} in the ${ROOM_NAMES[d.evidenceRoom]}.`, kind: 'evidence' };
+  for (const d of c.digits) if (f.has(d.pos) && !ex.has(`${d.kind}@${d.evidenceRoom}`)) return { text: `Digit ${d.pos}: study the ${KIND_NOUN[d.kind]} in the ${roomPhrase(c, d.evidenceRoom)}.`, kind: 'evidence' };
   const miss = c.digits.find(d => !f.has(d.pos));
-  if (miss) return { text: `A note is waiting in the ${ROOM_NAMES[miss.noteRoom]}.`, kind: 'note' };
+  if (miss) return { text: `A note is waiting in the ${roomPhrase(c, miss.noteRoom)}.`, kind: 'note' };
   return { text: 'You have every note. Enter digits 1 to 4 in order at the study door.', kind: 'final' };
 }
 
+export const parFor = level => levelOf(level).par;
 export const effectiveSeconds = (sec, hints, wrong) => sec + hints * HINT_COST + wrong * WRONG_COST;
-export const starsFor = eff => (eff <= PAR_SECONDS ? 3 : eff <= PAR_SECONDS * 1.5 ? 2 : 1);
+export const starsFor = (eff, par = PAR_SECONDS) => (eff <= par ? 3 : eff <= par * 1.5 ? 2 : 1);
 export const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 export const dailySeed = (d = new Date()) => `daily-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

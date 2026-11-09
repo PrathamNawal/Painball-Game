@@ -7,7 +7,7 @@ A 2-minute 3D investigation for **Halloran & Finch Detective Agency** (an invent
 cd locked-study
 npm start        # http://localhost:8099
 npm test         # puzzle logic: 600 generated cases proven solvable + unambiguous
-npm run e2e      # headless-Chromium playthrough (needs the server running + playwright)
+npm run e2e      # headless-Chromium: full playthrough + feel/levels/touch/perf checks (needs the server running + playwright)
 ```
 
 ## Play
@@ -21,6 +21,9 @@ npm run e2e      # headless-Chromium playthrough (needs the server running + pla
 
 - **Today's case** is the same for everyone (seeded by date). **Random case** is a fresh one. `?seed=anything` plays a specific case.
 - Score = 100 per token + 500 for opening the study + a time bonus (3 pts per second under 5:00 of score time). Score time = time + 10 s per hint + 5 s per wrong code; 3 stars at ≤ 2:00. Best score is kept in the browser.
+- **Levels:** 1 *Warm-up* (no decoys, notes name the room, par 2:30) · 2 *The Case* (one decoy per clue, par 2:00) · 3 *Cold Case* (two decoys each, notes describe rooms by rug colour, par 1:40). Clearing a level unlocks the next; best score per level is saved. The end card has *Next level*, *Play again* and *Share score* (copies "I scored N in The Locked Study (Level L) <link>"; if copying is blocked the text is shown, selected, so you can copy it yourself).
+- **Feel:** the camera eases behind your input, speed builds up and eases off, hitting a wall gives a small screen shake, tokens burst into sparks and winning throws confetti, and collisions forgive near misses (you glide around a door jamb instead of sticking). The eased camera is never allowed inside a wall.
+- **World:** a desert canyon at sunset. Light, sky and fog drift slowly from late afternoon to dusk; cacti and rocks are scattered at random but never on the road or inside the house; static geometry is merged so the worst view is under 100 draw calls (tests enforce ≤ 200).
 - Look: open-roof estate, flat-shaded low-poly, sky gradient and soft sun shadows, all drawn in code (no image files). Phones get a smaller shadow map and a capped pixel ratio.
 
 ## How a case is built (`src/core.js`)

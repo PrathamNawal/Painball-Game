@@ -16,6 +16,7 @@
   <div class="bar">
     <div class="chip" id="timer" role="timer" aria-label="Time">0:00</div>
     <div class="chip" id="room" aria-live="polite">Entrance hall</div>
+    <div class="chip" id="level-chip">Level 2</div>
     <div class="chip" id="notes-count" aria-label="Case tokens collected">Tokens 0/4</div>
     <div class="chip" id="score" aria-label="Score">Score 0</div>
     <button class="chip btn" id="btn-notes" type="button">Notebook</button>
@@ -34,13 +35,15 @@
 <section class="modal" id="m-intro">
   <div class="card">
     <p class="eyebrow">Halloran &amp; Finch Detective Agency · Case file</p>
-    <h1>The Locked Study</h1>
-    <p><b>Goal:</b> open the study. Collect the four brass case tokens — each one carries a note that points at a clue in <em>another</em> room. Every clue has a look-alike decoy, so read carefully. Then key in the 4-digit code.</p>
-    <p class="fine"><b>Move</b> ↑ ↓ · <b>Turn</b> ← → · <b>Strafe</b> A D · <b>Inspect</b> E / Space · <b>Restart</b> R · phone: left thumb moves, right thumb looks, tap Inspect.</p>
+    <h1 class="title">The Locked<br>Study</h1>
+    <p><b>Goal:</b> open the study. Collect the four brass case tokens — each carries a note that points at a clue in <em>another</em> room — then key in the 4-digit code.</p>
+    <div id="levels" role="group" aria-label="Level"></div>
+    <p class="fine" id="level-blurb"></p>
     <div class="row">
       <button class="btn primary" id="go-daily" type="button">Today's case</button>
       <button class="btn" id="go-random" type="button">Random case</button>
     </div>
+    <p class="fine"><b>Move</b> ↑ ↓ · <b>Turn</b> ← → · <b>Strafe</b> A D · <b>Inspect</b> E / Space · <b>Restart</b> R · phone: left thumb moves, right thumb looks, tap Inspect.</p>
     <p class="fine" id="best"></p>
   </div>
 </section>
@@ -66,13 +69,16 @@
 <section class="modal" id="m-win" hidden>
   <div class="card">
     <p class="eyebrow">Case closed</p>
-    <h2>The study is open</h2>
+    <h2 id="win-title">The study is open</h2>
     <div class="stars" id="win-stars" role="img"></div>
     <dl class="facts" id="win-facts"></dl>
     <div class="row">
-      <button class="btn primary" id="win-again" type="button">New case</button>
+      <button class="btn primary" id="win-next" type="button">Next level</button>
+      <button class="btn" id="win-again" type="button">Play again</button>
+      <button class="btn" id="win-share" type="button">Share score</button>
       <button class="btn" id="win-walk" type="button">Walk in</button>
     </div>
+    <div id="share-box" hidden><p class="fine" id="share-msg"></p><textarea id="share-text" readonly rows="3" aria-label="Score text to copy"></textarea></div>
   </div>
 </section>
 
