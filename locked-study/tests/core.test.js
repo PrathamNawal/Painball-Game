@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCase, solveFromNotes, readEvidence, checkCode, hint, starsFor, effectiveSeconds, makeRng, ROOM_IDS, KINDS, dailySeed } from '../src/core.js';
+import { generateCase, solveFromNotes, readEvidence, checkCode, hint, scoreFor, starsFor, effectiveSeconds, makeRng, ROOM_IDS, KINDS, dailySeed } from '../src/core.js';
 
 test('same seed -> identical case; different seeds differ', () => {
   assert.deepEqual(generateCase('abc'), generateCase('abc'));
@@ -52,4 +52,11 @@ test('scoring + daily seed', () => {
   assert.equal(starsFor(effectiveSeconds(120, 2, 0)), 2);
   assert.equal(starsFor(effectiveSeconds(200, 0, 0)), 1);
   assert.match(dailySeed(new Date(2026, 10, 9)), /^daily-2026-11-09$/);
+});
+
+test('score: tokens, solve bonus, time bonus, never negative', () => {
+  assert.equal(scoreFor({ tokens: 2, solved: false, eff: 50 }), 200);
+  assert.equal(scoreFor({ tokens: 4, solved: true, eff: 120 }), 400 + 500 + 540);
+  assert.equal(scoreFor({ tokens: 4, solved: true, eff: 900 }), 900);
+  assert.ok(scoreFor({ tokens: 0, solved: true, eff: 0 }) > scoreFor({ tokens: 0, solved: true, eff: 200 }));
 });

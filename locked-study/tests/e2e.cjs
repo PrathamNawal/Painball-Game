@@ -18,6 +18,14 @@ const ok = m => console.log('  ok -', m);
   const aim = (x, z, tx, ty, tz) => p.evaluate(([x, z, tx, ty, tz]) => { const dx = tx - x, dz = tz - z; window.__study.teleport(x, z, Math.atan2(-dx, -dz), Math.atan2(ty - 1.62, Math.hypot(dx, dz))); }, [x, z, tx, ty, tz]);
   const settle = () => p.waitForTimeout(120);
 
+  // 0. walking into a floating brass token collects it (no button needed); Restart resets the case
+  const first = c.notes[0], [fx0, fz0] = NOTE[first.room];
+  await p.evaluate(([x, z]) => window.__study.teleport(x + 0.6, z, 0), [fx0, fz0]);
+  await p.waitForSelector('#m-note:not([hidden])', { timeout: 8000 }); assert.equal(await p.textContent('#note-text'), first.text);
+  assert.equal(await p.textContent('#score'), 'Score 100'); await p.click('#note-close'); ok('token auto-collected on touch, score 100');
+  await p.click('#btn-restart'); await p.waitForTimeout(300);
+  assert.equal(await p.textContent('#notes-count'), 'Tokens 0/4'); assert.equal(await p.textContent('#score'), 'Score 0'); ok('restart resets tokens and score');
+
   // 1. every note desk is reachable by raycast and opens its note
   for (const n of c.notes) {
     const [nx, nz] = NOTE[n.room]; await aim(nx + 1.4, nz + 0.2, nx, 0.85, nz); await settle();
@@ -25,7 +33,7 @@ const ok = m => console.log('  ok -', m);
     await p.keyboard.press('e'); await p.waitForSelector('#m-note:not([hidden])');
     assert.equal(await p.textContent('#note-text'), n.text); await p.click('#note-close');
   }
-  assert.equal(await p.textContent('#notes-count'), 'Notes 4/4'); ok('4 notes found, text matches case');
+  assert.equal(await p.textContent('#notes-count'), 'Tokens 4/4'); assert.equal(await p.textContent('#score'), 'Score 400'); ok('4 notes found, text matches case, score 400');
   await p.keyboard.press('n'); await p.waitForSelector('#m-book:not([hidden])'); assert.equal(await p.locator('#book-list li:not(.locked)').count(), 4); await p.click('#book-close'); ok('notebook lists all notes');
 
   // 2. hint costs time and names a real place
@@ -51,7 +59,7 @@ const ok = m => console.log('  ok -', m);
   await p.waitForTimeout(1700);
   for (const d of c.code) await p.click(`#pad-keys button[data-k="${d}"]`);
   await p.waitForSelector('#m-win:not([hidden])'); ok('correct code opens the door and shows the win card');
-  assert.match(await p.textContent('#win-facts'), /Hints.*1/s);
+  assert.match(await p.textContent('#win-facts'), /Hints.*1/s); assert.match(await p.textContent('#win-facts'), /Score/); assert.match(await p.textContent('#score'), /Score 1[0-9]{3}/);
   await p.click('#win-walk'); await p.evaluate(() => window.__study.teleport(0, 3.6, Math.PI)); await p.keyboard.down('w');
   await p.waitForFunction(() => window.__study.G.z > 6, null, { timeout: 12000 }); await p.keyboard.up('w'); ok('opened door is walkable into the study');
 

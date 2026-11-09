@@ -1,6 +1,6 @@
 // THE LOCKED STUDY — game loop, input, UI wiring.
 import * as THREE from 'three';
-import { generateCase, checkCode, hint, effectiveSeconds, starsFor, fmtTime, dailySeed, ROOM_NAMES, HINT_COST, WRONG_COST } from './core.js';
+import { generateCase, checkCode, hint, effectiveSeconds, starsFor, scoreFor, fmtTime, dailySeed, ROOM_NAMES, HINT_COST, WRONG_COST } from './core.js';
 import { buildWorld } from './world.js';
 
 const $ = id => document.getElementById(id);
@@ -8,13 +8,14 @@ const params = new URLSearchParams(location.search), debug = params.has('debug')
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } } };
 const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
-const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 60);
+const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: !coarse, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, coarse ? 1.5 : 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 200);
 const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); };
 addEventListener('resize', resize); resize();
 
-const G = { c: null, world: null, state: 'intro', modal: null, t0: 0, elapsed: 0, hints: 0, wrong: 0, found: new Set(), examined: new Set(), code: '', lockUntil: 0, solved: false,
+const G = { seed: '', c: null, world: null, state: 'intro', modal: null, t0: 0, elapsed: 0, hints: 0, wrong: 0, found: new Set(), examined: new Set(), code: '', lockUntil: 0, solved: false,
   x: 0, z: 1.5, yaw: 0, pitch: 0, bob: 0, focus: null, keys: new Set(), stick: { x: 0, y: 0 } };
 const ray = new THREE.Raycaster(); ray.far = 3.3;
 
@@ -25,17 +26,18 @@ const beep = (f, d = 0.08, type = 'sine', v = 0.05) => { try { actx ||= new (win
 // ---------- case lifecycle ----------
 function startCase(seed) {
   const prev = G.world; if (prev) prev.scene.traverse(o => { o.geometry?.dispose?.(); });
-  G.c = generateCase(seed); G.world = buildWorld(G.c);
+  G.seed = seed; G.c = generateCase(seed); G.world = buildWorld(G.c, { shadowSize: coarse ? 1024 : 2048 });
   Object.assign(G, { x: 0, z: 1.5, yaw: 0, pitch: 0, found: new Set(), examined: new Set(), hints: 0, wrong: 0, code: '', solved: false, elapsed: 0, state: 'play', t0: performance.now(), lockUntil: 0 });
   G.world.setUnlocked(false);
   $('m-intro').hidden = true; $('m-win').hidden = true; $('hud').hidden = false; $('touch').hidden = !coarse;
-  G.modal = null; updateCounts(); updateBook(); toast('Find a note. Notes point to clues in other rooms.', 3600);
+  G.modal = null; updateCounts(); updateBook(); updateScore(); toast('Collect the 4 brass case tokens. Each one points at a clue in another room.', 4200);
 }
 const modals = ['m-note', 'm-book', 'm-pad', 'm-win'];
 function openModal(id) { G.modal = id; $(id).hidden = false; if (document.pointerLockElement) document.exitPointerLock?.(); G.keys.clear(); G.stick = { x: 0, y: 0 }; $(id).querySelector('button')?.focus({ preventScroll: true }); }
 function closeModal() { if (G.modal) { $(G.modal).hidden = true; G.modal = null; $('view').focus?.(); } }
 function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, ms); }
-function updateCounts() { $('notes-count').textContent = `Notes ${G.found.size}/4`; }
+function updateCounts() { $('notes-count').textContent = `Tokens ${G.found.size}/4`; }
+function updateScore() { $('score').textContent = `Score ${scoreFor({ tokens: G.found.size, solved: false, eff: 0 })}`; }
 function updateBook() {
   $('book-list').innerHTML = G.c.digits.map(d => { const n = G.c.notes.find(x => x.pos === d.pos); return G.found.has(d.pos) ? `<li>${esc(n.text)}</li>` : `<li class="locked">Digit ${d.pos}: not found yet…</li>`; }).join('');
 }
@@ -53,12 +55,15 @@ function activate() {
   if (G.state !== 'play' || G.modal) return;
   syncCamera(); G.focus = findFocus(); if (!G.focus) return;   // re-aim right now so a press never acts on a stale target
   const f = G.focus;
-  if (f.type === 'note') {
-    const n = G.c.notes.find(x => x.pos === f.pos); G.found.add(f.pos); updateCounts(); updateBook(); beep(520, 0.1, 'triangle');
-    $('note-title').textContent = `Note · digit ${f.pos}`; $('note-text').textContent = n.text; openModal('m-note');
-  } else if (f.type === 'evidence') {
+  if (f.type === 'note') collectNote(f.pos);
+  else if (f.type === 'evidence') {
     G.examined.add(f.id); beep(330, 0.06); toast(f.flavor);
   } else if (f.type === 'keypad') { G.code = ''; padRender('Enter the 4-digit code.'); openModal('m-pad'); }
+}
+
+function collectNote(pos) {
+  const n = G.c.notes.find(x => x.pos === pos); G.found.add(pos); G.world.collectToken(pos); updateCounts(); updateBook(); updateScore(); beep(520, 0.1, 'triangle'); setTimeout(() => beep(780, 0.12, 'triangle'), 90);
+  $('note-title').textContent = `Case token ${G.found.size}/4 · digit ${pos}`; $('note-text').textContent = n.text; openModal('m-note');
 }
 
 // ---------- keypad ----------
@@ -83,11 +88,11 @@ $('pad-keys').addEventListener('click', e => { const b = e.target.closest('butto
 // ---------- win ----------
 function win() {
   G.solved = true; G.state = 'won'; G.elapsed = (performance.now() - G.t0) / 1000;
-  const eff = effectiveSeconds(G.elapsed, G.hints, G.wrong), stars = starsFor(eff);
+  const eff = effectiveSeconds(G.elapsed, G.hints, G.wrong), stars = starsFor(eff), score = scoreFor({ tokens: G.found.size, solved: true, eff });
   G.world.setUnlocked(true); beep(660, 0.12, 'triangle'); setTimeout(() => beep(880, 0.2, 'triangle'), 130);
-  const best = Number(store.get('lockedstudy.best')) || 0; if (!best || eff < best) store.set('lockedstudy.best', String(Math.round(eff)));
+  const best = Number(store.get('lockedstudy.bestscore')) || 0; if (score > best) store.set('lockedstudy.bestscore', String(score)); $('score').textContent = `Score ${score}`;
   $('win-stars').innerHTML = [0, 1, 2].map(i => `<span class="${i < stars ? 'on' : ''}">★</span>`).join(''); $('win-stars').setAttribute('aria-label', `${stars} of 3 stars`);
-  $('win-facts').innerHTML = [['Time', fmtTime(G.elapsed)], ['Hints', `${G.hints} (+${G.hints * HINT_COST}s)`], ['Wrong codes', `${G.wrong} (+${G.wrong * WRONG_COST}s)`], ['Score time', fmtTime(eff)]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  $('win-facts').innerHTML = [['Score', score], ['Best score', Math.max(score, best)], ['Time', fmtTime(G.elapsed)], ['Hints', `${G.hints} (+${G.hints * HINT_COST}s)`], ['Wrong codes', `${G.wrong} (+${G.wrong * WRONG_COST}s)`], ['Score time', fmtTime(eff)]].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
   closeModal(); openModal('m-win');
 }
 
@@ -100,9 +105,10 @@ addEventListener('keydown', e => {
   if (G.modal === 'm-pad' && e.key === 'Backspace') { padPress('<'); return; }
   if (G.modal) return;
   const k = e.key.toLowerCase();
-  if (k === 'e' || k === 'enter') { activate(); return; }
+  if (k === 'e' || k === 'enter' || k === ' ') { activate(); e.preventDefault(); return; }
   if (k === 'n') { updateBook(); openModal('m-book'); return; }
   if (k === 'h') { doHint(); return; }
+  if (k === 'r') { startCase(G.seed); return; }
   G.keys.add(k); if (k.startsWith('arrow') || k === ' ') e.preventDefault();
 });
 addEventListener('keyup', e => G.keys.delete(e.key.toLowerCase()));
@@ -144,13 +150,14 @@ function doHint() {
   const h = hint(G.c, G.found, G.examined); G.hints++; beep(440, 0.12, 'triangle'); toast(`${h.text}  (+${HINT_COST}s)`, 4200);
 }
 $('btn-hint').addEventListener('click', doHint);
+$('btn-restart').addEventListener('click', () => { if (G.state !== 'intro') startCase(G.seed); });
 $('btn-notes').addEventListener('click', () => { if (G.state === 'play' && !G.modal) { updateBook(); openModal('m-book'); } });
 $('note-close').addEventListener('click', closeModal); $('book-close').addEventListener('click', closeModal); $('pad-close').addEventListener('click', closeModal);
 $('go-daily').addEventListener('click', () => startCase(params.get('seed') || dailySeed()));
 $('go-random').addEventListener('click', () => startCase(`r${Math.floor(Math.random() * 1e9)}`));
 $('win-again').addEventListener('click', () => startCase(`r${Math.floor(Math.random() * 1e9)}`));
 $('win-walk').addEventListener('click', () => { closeModal(); G.state = 'walk'; });
-{ const b = Number(store.get('lockedstudy.best')); if (b) $('best').textContent = `Your best score time: ${fmtTime(b)}`; }
+{ const b = Number(store.get('lockedstudy.bestscore')); if (b) $('best').textContent = `Your best score: ${b}`; }
 
 // ---------- loop ----------
 const hit = (x, z, r) => { for (const w of G.world.walls) if (w.on && x > w.minX - r && x < w.maxX + r && z > w.minZ - r && z < w.maxZ + r) return true; return false; };
@@ -159,14 +166,16 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (G.world && (G.state === 'play' || G.state === 'walk' || G.state === 'won')) {
     if (!G.modal || G.state === 'won') {
-      const K = G.keys; let fx = (K.has('d') || K.has('arrowright') ? 1 : 0) - (K.has('a') || K.has('arrowleft') ? 1 : 0) + G.stick.x, fz = (K.has('s') || K.has('arrowdown') ? 1 : 0) - (K.has('w') || K.has('arrowup') ? 1 : 0) + G.stick.y;
+      const K = G.keys; G.yaw += ((K.has('arrowleft') ? 1 : 0) - (K.has('arrowright') ? 1 : 0)) * 2.1 * dt;
+      let fx = (K.has('d') ? 1 : 0) - (K.has('a') ? 1 : 0) + G.stick.x, fz = (K.has('s') || K.has('arrowdown') ? 1 : 0) - (K.has('w') || K.has('arrowup') ? 1 : 0) + G.stick.y;
       const m = Math.hypot(fx, fz); if (m > 1) { fx /= m; fz /= m; }
       const sp = (K.has('shift') ? 5.2 : 3.2) * dt, c = Math.cos(G.yaw), s = Math.sin(G.yaw), dx = (fx * c + fz * s) * sp, dz = (-fx * s + fz * c) * sp, R = 0.32;
       if (!hit(G.x + dx, G.z, R)) G.x += dx; if (!hit(G.x, G.z + dz, R)) G.z += dz;
       if (m > 0.05) G.bob += dt * (K.has('shift') ? 11 : 8);
     }
     G.world.tick(dt);
-    syncCamera();
+    syncCamera(); G.world.followSky(G.x, 0, G.z);
+    if (G.state === 'play' && !G.modal) for (const n of G.c.notes) if (!G.found.has(n.pos)) { const sp = G.world.noteAt[n.pos]; if (Math.hypot(G.x - sp.x, G.z - sp.z) < 1.15) { collectNote(n.pos); break; } }
     if (G.state === 'play') {
       G.elapsed = (now - G.t0) / 1000; $('timer').textContent = fmtTime(G.elapsed + G.hints * HINT_COST + G.wrong * WRONG_COST);
       focusTick -= dt; if (focusTick <= 0 && !G.modal) { focusTick = 0.08; G.focus = findFocus(); const p = $('prompt'); if (G.focus) { p.hidden = false; p.textContent = `${coarse ? 'Tap Inspect' : 'E'} · ${G.focus.label}`; } else p.hidden = true; $('cross').classList.toggle('on', !!G.focus); }

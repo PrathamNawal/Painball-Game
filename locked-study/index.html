@@ -16,9 +16,11 @@
   <div class="bar">
     <div class="chip" id="timer" role="timer" aria-label="Time">0:00</div>
     <div class="chip" id="room" aria-live="polite">Entrance hall</div>
-    <div class="chip" id="notes-count" aria-label="Notes found">Notes 0/4</div>
+    <div class="chip" id="notes-count" aria-label="Case tokens collected">Tokens 0/4</div>
+    <div class="chip" id="score" aria-label="Score">Score 0</div>
     <button class="chip btn" id="btn-notes" type="button">Notebook</button>
     <button class="chip btn warn" id="btn-hint" type="button">Hint +10s</button>
+    <button class="chip btn" id="btn-restart" type="button">Restart</button>
   </div>
   <div id="cross" aria-hidden="true"></div>
   <div id="prompt" role="status" aria-live="polite" hidden></div>
@@ -31,10 +33,10 @@
 
 <section class="modal" id="m-intro">
   <div class="card">
-    <p class="eyebrow">A 2-minute investigation</p>
+    <p class="eyebrow">Halloran &amp; Finch Detective Agency · Case file</p>
     <h1>The Locked Study</h1>
-    <p>The study is locked with a 4-digit code. Four notes are scattered through the house. Each one points at a clue in <em>another</em> room — read carefully, because every clue has a look-alike decoy.</p>
-    <p class="fine"><b>Move</b> WASD / arrows (Shift runs) · <b>Look</b> mouse (click the view to lock) · <b>Inspect</b> E or click · <b>Notebook</b> N · phone: left thumb moves, right thumb looks.</p>
+    <p><b>Goal:</b> open the study. Collect the four brass case tokens — each one carries a note that points at a clue in <em>another</em> room. Every clue has a look-alike decoy, so read carefully. Then key in the 4-digit code.</p>
+    <p class="fine"><b>Move</b> ↑ ↓ · <b>Turn</b> ← → · <b>Strafe</b> A D · <b>Inspect</b> E / Space · <b>Restart</b> R · phone: left thumb moves, right thumb looks, tap Inspect.</p>
     <div class="row">
       <button class="btn primary" id="go-daily" type="button">Today's case</button>
       <button class="btn" id="go-random" type="button">Random case</button>

@@ -85,3 +85,6 @@ export const effectiveSeconds = (sec, hints, wrong) => sec + hints * HINT_COST +
 export const starsFor = eff => (eff <= PAR_SECONDS ? 3 : eff <= PAR_SECONDS * 1.5 ? 2 : 1);
 export const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 export const dailySeed = (d = new Date()) => `daily-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Score: 100 per case token, +500 for opening the study, plus a time bonus (3 pts per second under 5:00 of score time). */
+export const scoreFor = ({ tokens, solved, eff }) => tokens * 100 + (solved ? 500 + Math.max(0, Math.round((300 - eff) * 3)) : 0);
